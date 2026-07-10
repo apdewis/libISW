@@ -561,7 +561,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   ((SimpleWidget) new)->simple.traversal_on = True;
 
-  /* HiDPI: scale dimension resources */  ctx->text.r_margin.left = (Position)(ctx->text.r_margin.left);
+  /* HiDPI: scale dimension resources */  
+  ctx->text.r_margin.left = (Position)(ctx->text.r_margin.left);
   ctx->text.r_margin.right = (Position)(ctx->text.r_margin.right);
   ctx->text.r_margin.top = (Position)(ctx->text.r_margin.top);
   ctx->text.r_margin.bottom = (Position)(ctx->text.r_margin.bottom);
@@ -1214,12 +1215,9 @@ _IswTextVScroll(TextWidget ctx, int n)
     DisplayTextWindow((Widget)ctx);
     _IswTextSetScrollBars(ctx);
   }
-  {
-    IswArgBuilder ab = IswArgBuilderInit();
-    IswArgInsertPosition(&ab, ctx->text.lt.top+ctx->text.lt.lines);
-  }
-
-    _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
+  
+  IswArgBuilder ab = IswArgBuilderInit();
+  IswArgInsertPosition(&ab, ctx->text.lt.top+ctx->text.lt.lines);
 }
 
 /*ARGSUSED*/
@@ -1650,60 +1648,57 @@ DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
 
       if ( (x == (Position) ctx->text.margin.left) && (x > 0) )
       {
-	 SinkClearToBG (ctx->text.sink,
-			(Position) s, y,
-			(Dimension) ctx->text.margin.left, (Dimension)height);
-	   _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
+	      SinkClearToBG (ctx->text.sink,
+			  (Position) x, y,
+			  (Dimension) ctx->text.margin.left, (Dimension)height);
       }
 
       if ( (startPos >= ctx->text.s.right) || (endPos <= ctx->text.s.left) )
-	IswTextSinkDisplayText(ctx->text.sink, x, y, startPos, endPos, FALSE);
+	        IswTextSinkDisplayText(ctx->text.sink, x, y, startPos, endPos, FALSE);
       else if ((startPos >= ctx->text.s.left) && (endPos <= ctx->text.s.right))
-	IswTextSinkDisplayText(ctx->text.sink, x, y, startPos, endPos, TRUE);
+	        IswTextSinkDisplayText(ctx->text.sink, x, y, startPos, endPos, TRUE);
       else {
-	DisplayText(w, startPos, ctx->text.s.left);
-	DisplayText(w, IswMax(startPos, ctx->text.s.left),
-		    IswMin(endPos, ctx->text.s.right));
-	DisplayText(w, ctx->text.s.right, endPos);
+	        DisplayText(w, startPos, ctx->text.s.left);
+	        DisplayText(w, IswMax(startPos, ctx->text.s.left),
+		      IswMin(endPos, ctx->text.s.right));
+	        DisplayText(w, ctx->text.s.right, endPos);
       }
     }
     startPos = endPos;
     if (clear_eol) {
-	Position myx = ctx->text.lt.info[i].textWidth + ctx->text.margin.left;
+	    Position myx = ctx->text.lt.info[i].textWidth + ctx->text.margin.left;
 
-	SinkClearToBG(ctx->text.sink,
-		      (Position) myx,
-		      (Position) y, w->core.width - myx/* - 2 * s*/,
-		      (Dimension) height);
-	  _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
-
-	/*
-	 * We only get here if single character is true, and we need
-	 * to clear to the end of the screen.  We know that since there
-	 * was only one character deleted that this is the same
-	 * as clearing an extra line, so we do this, and are done.
-	 *
-	 * This a performance hack, and a pretty gross one, but it works.
-	 *
-	 * Chris Peterson 11/13/89.
-	 */
-
-	if (done_painting) {
-	    y += height;
 	    SinkClearToBG(ctx->text.sink,
-			  (Position) ctx->text.margin.left, (Position) y,
-			  w->core.width - ctx->text.margin.left/* - 2 * s*/,
-			  (Dimension) IswMin(height, ctx->core.height - 2 * s - y));
-	      _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
+		      (Position) myx,
+		      (Position) y, w->core.width - myx,
+		      (Dimension) height);
+	    /*
+	     * We only get here if single character is true, and we need
+	     * to clear to the end of the screen.  We know that since there
+	     * was only one character deleted that this is the same
+	     * as clearing an extra line, so we do this, and are done.
+	     *
+	     * This a performance hack, and a pretty gross one, but it works.
+	     *
+	     * Chris Peterson 11/13/89.
+	     */
 
-	    break;		/* set single_char to FALSE and return. */
-	}
+	    if (done_painting) {
+	        y += height;
+	        SinkClearToBG(ctx->text.sink,
+	    		  (Position) ctx->text.margin.left, (Position) y,
+	    		  w->core.width - ctx->text.margin.left/* - 2 * s*/,
+	    		  (Dimension) IswMin(height, ctx->core.height - 2 * s - y));
+	          _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
+          
+	        break;		/* set single_char to FALSE and return. */
+	    }
     }
 
     x = (Position) ctx->text.margin.left;
     y = ctx->text.lt.info[i + 1].y;
     if ( done_painting
-	 || (y >= (int)(ctx->core.height - ctx->text.margin.bottom)) )
+	    || (y >= (int)(ctx->core.height - ctx->text.margin.bottom)) )
       break;
   }
   ctx->text.single_char = FALSE;
@@ -1929,8 +1924,8 @@ ClearWindow (Widget w)
   if (IswIsRealized(w))
   {
     SinkClearToBG(ctx->text.sink,
-    (Position) s, (Position) s,
-    w->core.width - 2 * s, w->core.height - 2 * s);
+    0, 0,
+    w->core.width, w->core.height);
   }
 }
 
@@ -2242,15 +2237,13 @@ ProcessExposeRegion(Widget w, IswEvent *iswev, IswRegion region _X_UNUSED)
         expose.y = 0;
         expose.width = ctx->core.width;
         expose.height = ctx->core.height;
-    }
-    else if (iswev->kind == IswRedraw) {
-	expose.x = iswev->redraw.x;
-	expose.y = iswev->redraw.y;
-	expose.width = iswev->redraw.width;
-	expose.height = iswev->redraw.height;
-    }
-    else {
-	return;			/* not an expose; nothing to do. */
+    } else if (iswev->kind == IswRedraw) {
+	      expose.x = iswev->redraw.x;
+	      expose.y = iswev->redraw.y;
+	      expose.width = iswev->redraw.width;
+	      expose.height = iswev->redraw.height;
+    } else {
+	      return;			/* not an expose; nothing to do. */
     }
 
     _IswTextPrepareToUpdate(ctx);
@@ -2258,16 +2251,15 @@ ProcessExposeRegion(Widget w, IswEvent *iswev, IswRegion region _X_UNUSED)
 		  (Dimension) expose.width, (Dimension) expose.height);
     UpdateTextInRectangle(ctx, &expose);
     IswTextSinkGetCursorBounds(ctx->text.sink, &cursor);
+    
     if (RectanglesOverlap(&cursor, &expose)) {
-	SinkClearToBG(ctx->text.sink, (Position) cursor.x, (Position) cursor.y,
-		      (Dimension) cursor.width, (Dimension) cursor.height);
-	UpdateTextInRectangle(ctx, &cursor);
+	    SinkClearToBG(ctx->text.sink, (Position) cursor.x, (Position) cursor.y,
+		        (Dimension) cursor.width, (Dimension) cursor.height);
+	    UpdateTextInRectangle(ctx, &cursor);
     }
     _IswTextExecuteUpdate(ctx);
 
-      _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
-
-  PaintScrollbars(ctx);
+    PaintScrollbars(ctx);
 }
 
 /*

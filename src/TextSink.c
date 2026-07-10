@@ -279,17 +279,26 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     if (sink->text_sink.render_ctx) {
         /* Clip to the text content area, excluding the scrollbar bands.  The
            scrollbars are windowless children sharing this window, so text and
-           background drawing must never reach into them.  vbar occupies the
-           left band, hbar the bottom. */
+           background drawing must never reach into them. */
         int clip_l = 0, clip_t = 0;
         int clip_r = (int) ctx->core.width;
         int clip_b = (int) ctx->core.height;
-        if (ctx->text.vbar != NULL)
-            clip_l = (int) (ctx->text.vbar->core.width +
-                            2 * ctx->text.vbar->core.border_width);
-        if (ctx->text.hbar != NULL)
-            clip_b -= (int) (ctx->text.hbar->core.height +
-                             2 * ctx->text.hbar->core.border_width);
+        if (ctx->text.vbar != NULL) {
+            int vbar_space = (int)(ctx->text.vbar->core.width +
+                                   2 * ctx->text.vbar->core.border_width);
+            if (ctx->text.use_right)
+                clip_r -= vbar_space;
+            else
+                clip_l = vbar_space;
+        }
+        if (ctx->text.hbar != NULL) {
+            int hbar_space = (int)(ctx->text.hbar->core.height +
+                                   2 * ctx->text.hbar->core.border_width);
+            if (ctx->text.use_bottom)
+                clip_b -= hbar_space;
+            else
+                clip_t = hbar_space;
+        }
 
         ISWRenderBegin(sink->text_sink.render_ctx);
         if (clip_r > clip_l && clip_b > clip_t)
@@ -371,12 +380,22 @@ ClearToBackground(Widget w, Position x, Position y,
         int clip_l = 0, clip_t = 0;
         int clip_r = (int) ctx->core.width;
         int clip_b = (int) ctx->core.height;
-        if (ctx->text.vbar != NULL)
-            clip_l = (int) (ctx->text.vbar->core.width +
-                            2 * ctx->text.vbar->core.border_width);
-        if (ctx->text.hbar != NULL)
-            clip_b -= (int) (ctx->text.hbar->core.height +
-                             2 * ctx->text.hbar->core.border_width);
+        if (ctx->text.vbar != NULL) {
+            int vbar_space = (int)(ctx->text.vbar->core.width +
+                                   2 * ctx->text.vbar->core.border_width);
+            if (ctx->text.use_right)
+                clip_r -= vbar_space;
+            else
+                clip_l = vbar_space;
+        }
+        if (ctx->text.hbar != NULL) {
+            int hbar_space = (int)(ctx->text.hbar->core.height +
+                                   2 * ctx->text.hbar->core.border_width);
+            if (ctx->text.use_bottom)
+                clip_b -= hbar_space;
+            else
+                clip_t = hbar_space;
+        }
 
         ISWRenderBegin(sink->text_sink.render_ctx);
         if (clip_r > clip_l && clip_b > clip_t)
