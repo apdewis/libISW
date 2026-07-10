@@ -196,6 +196,10 @@ static IswResource resources[] = {
      offset(text.consume_tab), IswRImmediate, (IswPointer) TRUE},
   {IswNunrealizeCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
      offset(text.unrealize_callbacks), IswRCallback, (IswPointer) NULL},
+  {IswNuseBottom, IswCBoolean, IswRBoolean, sizeof(Boolean),
+     offset(text.use_bottom), IswRImmediate, (IswPointer) TRUE},
+  {IswNuseRight, IswCBoolean, IswRBoolean, sizeof(Boolean),
+     offset(text.use_right), IswRImmediate, (IswPointer) FALSE},
 };
 #undef offset
 
@@ -360,23 +364,26 @@ static void
 PositionHScrollBar(TextWidget ctx)
 {
   Widget vbar = ctx->text.vbar, hbar = ctx->text.hbar;
-  Position top, left = 0;
-  int s = 0;
+  Position top, left;
+  Dimension vbar_space = 0;
 
   if (ctx->text.hbar == NULL) return;
 
   if (vbar != NULL)
-    left += (Position) (vbar->core.width + vbar->core.border_width);
+    vbar_space = vbar->core.width + vbar->core.border_width;
 
-  IswResizeWidget( hbar, ctx->core.width - left - s, hbar->core.height,
+  IswResizeWidget( hbar, ctx->core.width - vbar_space, hbar->core.height,
 		 hbar->core.border_width );
 
-  left = s / 2 - (Position) hbar->core.border_width;
-  if (left < 0) left = 0;
-  if (vbar != NULL)
-    left += (Position) (vbar->core.width + vbar->core.border_width);
+  if (ctx->text.use_right)
+    left = 0;
+  else
+    left = (Position)vbar_space;
 
-  top = ctx->core.height - (hbar->core.height + hbar->core.border_width + s / 2);
+  if (ctx->text.use_bottom)
+    top = ctx->core.height - (hbar->core.height + hbar->core.border_width);
+  else
+    top = 0;
 
   IswMoveWidget( hbar, left, top);
 }
@@ -391,21 +398,33 @@ static void
 PositionVScrollBar(TextWidget ctx)
 {
   Widget vbar = ctx->text.vbar;
-  Position pos;
+  Widget hbar = ctx->text.hbar;
+  Position pos_x, pos_y;
   Dimension bw;
-  int s = 0;
+  Dimension hbar_space = 0;
 
   if (vbar == NULL)
     return;
-  
+
   bw = vbar->core.border_width;
 
-  IswResizeWidget( vbar, vbar->core.width, ctx->core.height - s, bw);
-  
-  pos = s / 2 - (Position)bw;
-  if (pos < 0) pos = 0;
+  if (hbar != NULL)
+    hbar_space = hbar->core.height + hbar->core.border_width;
 
-  IswMoveWidget( vbar, pos, pos);
+  IswResizeWidget( vbar, vbar->core.width, ctx->core.height - hbar_space, bw);
+
+  if (ctx->text.use_right)
+    pos_x = ctx->core.width - (Position)(vbar->core.width + bw);
+  else {
+    pos_x = 0;
+  }
+
+  if (ctx->text.use_bottom)
+    pos_y = 0;
+  else
+    pos_y = (Position)hbar_space;
+
+  IswMoveWidget( vbar, pos_x, pos_y);
 }
 
 static void
@@ -426,8 +445,13 @@ CreateVScrollBar(TextWidget ctx)
       IswAddCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
       (IswPointer) NULL);
 
-  ctx->text.r_margin.left += vbar->core.width + vbar->core.border_width;
-  ctx->text.margin.left = ctx->text.r_margin.left;
+  if (ctx->text.use_right) {
+    ctx->text.r_margin.right += vbar->core.width + vbar->core.border_width;
+    ctx->text.margin.right = ctx->text.r_margin.right;
+  } else {
+    ctx->text.r_margin.left += vbar->core.width + vbar->core.border_width;
+    ctx->text.margin.left = ctx->text.r_margin.left;
+  }
 
   PositionVScrollBar(ctx);
   PositionHScrollBar(ctx);	/* May modify location of Horiz. Bar. */
@@ -452,8 +476,13 @@ DestroyVScrollBar(TextWidget ctx)
 
   if (vbar == NULL) return;
 
-  ctx->text.r_margin.left -= vbar->core.width + vbar->core.border_width;
-  ctx->text.margin.left = ctx->text.r_margin.left;
+  if (ctx->text.use_right) {
+    ctx->text.r_margin.right -= vbar->core.width + vbar->core.border_width;
+    ctx->text.margin.right = ctx->text.r_margin.right;
+  } else {
+    ctx->text.r_margin.left -= vbar->core.width + vbar->core.border_width;
+    ctx->text.margin.left = ctx->text.r_margin.left;
+  }
   if (ctx->text.hbar == NULL)
       IswRemoveCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
 		       (IswPointer) NULL);
@@ -479,10 +508,14 @@ CreateHScrollBar(TextWidget ctx)
       IswAddCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
 		    (IswPointer) NULL);
 
-/**/
-  ctx->text.r_margin.bottom += hbar->core.height + hbar->core.border_width;
-  ctx->text.margin.bottom = ctx->text.r_margin.bottom;
-/**/
+  if (ctx->text.use_bottom) {
+    ctx->text.r_margin.bottom += hbar->core.height + hbar->core.border_width;
+    ctx->text.margin.bottom = ctx->text.r_margin.bottom;
+  } else {
+    ctx->text.r_margin.top += hbar->core.height + hbar->core.border_width;
+    ctx->text.margin.top = ctx->text.r_margin.top;
+  }
+
   PositionHScrollBar(ctx);
   if (IswIsRealized((Widget)ctx)) {
     IswRealizeWidget(hbar);
@@ -503,10 +536,14 @@ DestroyHScrollBar(TextWidget ctx)
 
   if (hbar == NULL) return;
 
-/**/
-  ctx->text.r_margin.bottom -= hbar->core.height + hbar->core.border_width;
-  ctx->text.margin.bottom = ctx->text.r_margin.bottom;
-/**/
+  if (ctx->text.use_bottom) {
+    ctx->text.r_margin.bottom -= hbar->core.height + hbar->core.border_width;
+    ctx->text.margin.bottom = ctx->text.r_margin.bottom;
+  } else {
+    ctx->text.r_margin.top -= hbar->core.height + hbar->core.border_width;
+    ctx->text.margin.top = ctx->text.r_margin.top;
+  }
+
   if (ctx->text.vbar == NULL)
       IswRemoveCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
 		       (IswPointer) NULL);
@@ -1042,7 +1079,7 @@ CheckVBarScrolling(TextWidget ctx)
       ISWTextPosition last_pos;
       Position y = ctx->core.height - ctx->text.margin.bottom;
 
-      if (ctx->text.hbar != NULL)
+      if (ctx->text.hbar != NULL && ctx->text.use_bottom)
 	y -= (ctx->text.hbar->core.height +
 	      2 * ctx->text.hbar->core.border_width);
 
@@ -2301,7 +2338,7 @@ _IswTextShowPosition(TextWidget ctx)
 
   x = ctx->core.width;
   y = ctx->core.height - ctx->text.margin.bottom;
-  if (ctx->text.hbar != NULL)
+  if (ctx->text.hbar != NULL && ctx->text.use_bottom)
     y -= ctx->text.hbar->core.height + 2 * ctx->text.hbar->core.border_width;
 
   max_pos = PositionForXY (ctx, x, y);
@@ -2454,11 +2491,55 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
   _IswTextPrepareToUpdate(newtw);
   newtw->text.display_caret = display_caret;
 
+  if (oldtw->text.use_right != newtw->text.use_right && newtw->text.vbar != NULL) {
+    Dimension vbar_width = newtw->text.vbar->core.width + newtw->text.vbar->core.border_width;
+    if (oldtw->text.use_right) {
+      newtw->text.r_margin.right -= vbar_width;
+      newtw->text.margin.right = newtw->text.r_margin.right;
+      newtw->text.r_margin.left += vbar_width;
+      newtw->text.margin.left = newtw->text.r_margin.left;
+    } else {
+      newtw->text.r_margin.left -= vbar_width;
+      newtw->text.margin.left = newtw->text.r_margin.left;
+      newtw->text.r_margin.right += vbar_width;
+      newtw->text.margin.right = newtw->text.r_margin.right;
+    }
+    PositionVScrollBar(newtw);
+    PositionHScrollBar(newtw);
+    redisplay = TRUE;
+  }
+
+  if (oldtw->text.use_bottom != newtw->text.use_bottom && newtw->text.hbar != NULL) {
+    Dimension hbar_height = newtw->text.hbar->core.height + newtw->text.hbar->core.border_width;
+    if (oldtw->text.use_bottom) {
+      newtw->text.r_margin.bottom -= hbar_height;
+      newtw->text.margin.bottom = newtw->text.r_margin.bottom;
+      newtw->text.r_margin.top += hbar_height;
+      newtw->text.margin.top = newtw->text.r_margin.top;
+    } else {
+      newtw->text.r_margin.top -= hbar_height;
+      newtw->text.margin.top = newtw->text.r_margin.top;
+      newtw->text.r_margin.bottom += hbar_height;
+      newtw->text.margin.bottom = newtw->text.r_margin.bottom;
+    }
+    PositionHScrollBar(newtw);
+    PositionVScrollBar(newtw);
+    redisplay = TRUE;
+  }
+
   if (oldtw->text.r_margin.left != newtw->text.r_margin.left) {
     newtw->text.margin.left = newtw->text.r_margin.left;
-    if (newtw->text.vbar != NULL)
+    if (newtw->text.vbar != NULL && !newtw->text.use_right)
       newtw->text.margin.left += newtw->text.vbar->core.width +
 	                         newtw->text.vbar->core.border_width;
+    redisplay = TRUE;
+  }
+
+  if (oldtw->text.r_margin.right != newtw->text.r_margin.right) {
+    newtw->text.margin.right = newtw->text.r_margin.right;
+    if (newtw->text.vbar != NULL && newtw->text.use_right)
+      newtw->text.margin.right += newtw->text.vbar->core.width +
+                                  newtw->text.vbar->core.border_width;
     redisplay = TRUE;
   }
 
@@ -2472,9 +2553,17 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
   if (oldtw->text.r_margin.bottom != newtw->text.r_margin.bottom) {
     newtw->text.margin.bottom = newtw->text.r_margin.bottom;
-    if (newtw->text.hbar != NULL)
+    if (newtw->text.hbar != NULL && newtw->text.use_bottom)
       newtw->text.margin.bottom += newtw->text.hbar->core.height +
 	                           newtw->text.hbar->core.border_width;
+    redisplay = TRUE;
+  }
+
+  if (oldtw->text.r_margin.top != newtw->text.r_margin.top) {
+    newtw->text.margin.top = newtw->text.r_margin.top;
+    if (newtw->text.hbar != NULL && !newtw->text.use_bottom)
+      newtw->text.margin.top += newtw->text.hbar->core.height +
+                                newtw->text.hbar->core.border_width;
     redisplay = TRUE;
   }
 
@@ -2495,8 +2584,10 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
   if ( oldtw->text.wrap != newtw->text.wrap ||
        oldtw->text.lt.top != newtw->text.lt.top ||
+       oldtw->text.r_margin.left != newtw->text.r_margin.left ||
        oldtw->text.r_margin.right != newtw->text.r_margin.right ||
        oldtw->text.r_margin.top != newtw->text.r_margin.top ||
+       oldtw->text.r_margin.bottom != newtw->text.r_margin.bottom ||
        oldtw->text.sink != newtw->text.sink ||
        newtw->text.redisplay_needed )
   {

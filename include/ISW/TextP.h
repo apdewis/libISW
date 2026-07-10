@@ -175,6 +175,8 @@ typedef struct _TextPart {
     IswTextResizeMode   resize;	             /* what to resize */
     IswTextMargin       r_margin;            /* The real margins. */
     IswCallbackList	unrealize_callbacks; /* used for scrollbars */
+    Boolean             use_bottom;   /* True iff horiz bar at bottom */
+    Boolean             use_right;    /* True iff vert bar at right */
 
     /* private state */
 

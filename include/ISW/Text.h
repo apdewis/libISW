@@ -76,6 +76,8 @@ SOFTWARE.
  textSource	    TextSource	     Widget		NULL
  topMargin	    Margin	     Position		2
  unrealizeCallback  Callback	     Callback		NULL
+ useBottom	    Boolean	     Boolean		True
+ useRight	    Boolean	     Boolean		False
  wrap		    Wrap	     IswTextWrapMode	IswTextWrapNever
 
 */
