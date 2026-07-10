@@ -787,6 +787,7 @@ Widget create_viewport_demo(Widget parent) {
     IswArgAllowVert(&ab, True);
     IswArgUseBottom(&ab, True);
     IswArgUseRight(&ab, True);
+    IswArgCornerRadius(&ab, 5);
     viewport = IswCreateManagedWidget("viewport", viewportWidgetClass,
                                      viewport_container, ab.args, ab.count);
 
@@ -804,8 +805,10 @@ Widget create_viewport_demo(Widget parent) {
              "appear automatically.\n"
             );
     IswArgJustify(&ab, IswJustifyLeft);
+    IswArgCornerRadius(&ab, 5);
     IswArgWidth(&ab, 400);
     IswArgHeight(&ab, 150);
+    
     large_label = IswCreateManagedWidget("viewportContent", labelWidgetClass,
                                         viewport, ab.args, ab.count);
 
@@ -1876,6 +1879,8 @@ Widget create_text_demo(Widget parent) {
     IswArgWidth(&ab, 450);
     IswArgHeight(&ab, 120);
     IswArgScrollVertical(&ab, IswtextScrollAlways);
+    IswArgUseRight(&ab, 1);
+    IswArgCornerRadius(&ab, 5);
     IswArgString(&ab,
              "This is an editable text widget with scrollbars.\n"
              "Line 2: You can type, edit, and select text here.\n"
