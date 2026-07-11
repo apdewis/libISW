@@ -855,3 +855,23 @@ FindToplevelShell(Widget w)
         w = IswParent(w);
     return w;
 }
+
+void
+_IswMenuBarOpenButton(Widget button)
+{
+    Widget parent;
+    MenuBarWidget mbw;
+
+    if (!button || !IswIsSubclass(button, menuButtonWidgetClass))
+        return;
+    parent = IswParent(button);
+    if (!parent || !IswIsSubclass(parent, menuBarWidgetClass))
+        return;
+
+    mbw = (MenuBarWidget) parent;
+
+    if (mbw->menu_bar.menu_is_open)
+        CloseMenu(mbw);
+
+    OpenMenu(mbw, button);
+}

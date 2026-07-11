@@ -33,6 +33,7 @@
 #include <ISW/MenuButtoP.h>
 #include <ISW/SimpleMenu.h>
 #include <ISW/SimpleMenP.h>
+#include <ISW/MenuBar.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeBSBP.h>
 #include <ISW/ISWPlatform.h>
@@ -524,7 +525,11 @@ find_menu_entry_mnemonic(Widget menu, uint32_t target)
 static void
 trigger_menu_button(Widget mb)
 {
-    _IswMenuButtonPopup(mb);
+    Widget parent = IswParent(mb);
+    if (parent && IswIsSubclass(parent, menuBarWidgetClass))
+        _IswMenuBarOpenButton(mb);
+    else
+        _IswMenuButtonPopup(mb);
 }
 
 /* Case-fold a letter code point so mnemonic matching is case-insensitive. */

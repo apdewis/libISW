@@ -30,4 +30,6 @@ extern WidgetClass menuBarWidgetClass;
 typedef struct _MenuBarClassRec *MenuBarWidgetClass;
 typedef struct _MenuBarRec      *MenuBarWidget;
 
+extern void _IswMenuBarOpenButton(Widget button);
+
 #endif /* _ISW_IswMenuBar_h */
