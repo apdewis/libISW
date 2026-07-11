@@ -970,6 +970,49 @@ _IswFindWidgetAtPointFrom(Widget start, int ox0, int oy0,
     return target;
 }
 
+static Boolean
+_IswIsAncestorOf(Widget ancestor, Widget descendant)
+{
+    Widget w;
+    for (w = descendant; w != NULL && IswIsWidget(w) && !IswIsShell(w);
+         w = w->core.parent) {
+        if (w == ancestor)
+            return True;
+    }
+    return False;
+}
+
+static Widget
+_IswFindActiveOverlay(Widget parent)
+{
+    if (!IswIsComposite(parent))
+        return NULL;
+
+    CompositeWidget cw = (CompositeWidget) parent;
+    int i;
+
+    for (i = (int) cw->composite.num_children - 1; i >= 0; i--) {
+        Widget child = cw->composite.children[i];
+
+        if (!IswIsWidget(child) || IswIsShell(child))
+            continue;
+
+        if (child->core.windowless_overlay && child->core.windowless_mapped) {
+            Widget deeper = _IswFindActiveOverlay(child);
+            if (deeper != NULL)
+                return deeper;
+            return child;
+        }
+
+        if (IswIsComposite(child) && child->core.windowless_mapped) {
+            Widget r = _IswFindActiveOverlay(child);
+            if (r != NULL)
+                return r;
+        }
+    }
+    return NULL;
+}
+
 /* Find the topmost shown overlay (in-window popup menu) under (x,y), searching
    the whole subtree of `parent` (offset by ox,oy from the window origin).
    Overlays composite above all content, so they take hit-test priority and
@@ -1495,6 +1538,25 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                         dy = ay;
                         break;
                     }
+                }
+            }
+
+            if (etype == IswButtonDown) {
+                Widget active_overlay = _IswFindActiveOverlay(widget);
+                if (active_overlay != NULL &&
+                    target != active_overlay &&
+                    !_IswIsAncestorOf(active_overlay, target)) {
+                    int ox = 0, oy = 0;
+                    Widget a;
+                    for (a = active_overlay;
+                         a != NULL && IswIsWidget(a) && !IswIsShell(a);
+                         a = a->core.parent) {
+                        ox += a->core.x + (int) a->core.border_width;
+                        oy += a->core.y + (int) a->core.border_width;
+                    }
+                    target = active_overlay;
+                    dx = ox;
+                    dy = oy;
                 }
             }
 
