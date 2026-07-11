@@ -323,10 +323,7 @@ static void
 ClassInitialize(void)
 {
   int len1 = strlen (_IswDefaultTextTranslations1);
-  int len2 = strlen (_IswDefaultTextTranslations2);
-  int len3 = strlen (_IswDefaultTextTranslations3);
-  int len4 = strlen (_IswDefaultTextTranslations4);
-  char *buf = IswMalloc ((unsigned)(len1 + len2 + len3 + len4 + 1));
+  char *buf = IswMalloc ((unsigned)(len1 + 1));
   char *cp = buf;
 
   if (!IswFmt8Bit)
@@ -340,10 +337,7 @@ ClassInitialize(void)
 
   textClassRec.core_class.num_actions = _IswTextActionsTableCount;
 
-  (void) strcpy( cp, _IswDefaultTextTranslations1); cp += len1;
-  (void) strcpy( cp, _IswDefaultTextTranslations2); cp += len2;
-  (void) strcpy( cp, _IswDefaultTextTranslations3); cp += len3;
-  (void) strcpy( cp, _IswDefaultTextTranslations4);
+  (void) strcpy( cp, _IswDefaultTextTranslations1);
   textWidgetClass->core_class.tm_table = buf;
 
   IswAddConverter(IswRString, IswRScrollMode, CvtStringToScrollMode,

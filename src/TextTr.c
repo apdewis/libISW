@@ -25,76 +25,24 @@ in this Software without prior written authorization from the X Consortium.
 
 */
 
-/* INTERNATIONALIZATION:
-
-The OMRON R5 contrib added the following action to the old TextTr:
-
-	Ctrl<Key>backslash:	reconnect-im()
-
-This is needed when the im is killed or otherwise becomes unreachable.
-This keystroke is evil (inconvenient, hard-to-remember, not obvious)
-so I am adding one more translation:
-
-	<Key>Kanji:		reconnect-im()
-
-The Japanese user typically hits their Kanji key when they want to do
-input.  This merely makes sure the input is connected.
-*/
-
+/* #TODO these will want to be dynamic based on selected keymap at some
+ * point for defaults that make sense for non latin/non US-101 keymaps
+ * and perhaps helpers to make it configurable at all
+ */
 const char *_IswDefaultTextTranslations1 =
 "\
-Ctrl<Key>A:	beginning-of-line() \n\
-Ctrl<Key>B:	backward-character() \n\
+Ctrl<Key>A:	select-all() \n\
 Ctrl<Key>C:	copy-selection(CLIPBOARD) \n\
-Ctrl<Key>D:	delete-next-character() \n\
-Ctrl<Key>E:	end-of-line() \n\
-Ctrl<Key>F:	forward-character() \n\
-Ctrl<Key>G:     multiply(Reset) \n\
-Ctrl<Key>H:	delete-previous-character() \n\
-Ctrl<Key>J:	newline-and-indent() \n\
-Ctrl<Key>K:	kill-to-end-of-line() \n\
-Ctrl<Key>L:	redraw-display() \n\
-Ctrl<Key>M:	newline() \n\
-Ctrl<Key>N:	next-line() \n\
-Ctrl<Key>O:	newline-and-backup() \n\
-Ctrl<Key>P:	previous-line() \n\
-Ctrl<Key>R:	search(backward) \n\
-Ctrl<Key>S:	search(forward) \n\
-Ctrl<Key>T:     transpose-characters() \n\
-Ctrl<Key>U:	multiply(4) \n\
 Ctrl<Key>V:	insert-selection(CLIPBOARD) \n\
-Ctrl<Key>W:	kill-selection() \n\
 Ctrl<Key>X:	kill-selection() \n\
-Ctrl<Key>Y:	insert-selection(SECONDARY) \n\
-Ctrl<Key>Z:	scroll-one-line-up() \n\
-", *_IswDefaultTextTranslations2 = "\
-Meta<Key>B:	backward-word() \n\
-Meta<Key>F:	forward-word() \n\
-Meta<Key>I:	insert-file() \n\
-Meta<Key>K:	kill-to-end-of-paragraph() \n\
-Meta<Key>Q:     form-paragraph() \n\
-Meta<Key>V:	previous-page() \n\
-Meta<Key>Y:	insert-selection(PRIMARY, CLIPBOARD) \n\
-Meta<Key>Z:	scroll-one-line-down() \n\
-:Meta<Key>d:	delete-next-word() \n\
-:Meta<Key>D:	kill-word() \n\
-:Meta<Key>h:	delete-previous-word() \n\
-:Meta<Key>H:	backward-kill-word() \n\
-:Meta<Key>\\<:	beginning-of-file() \n\
-:Meta<Key>\\>:	end-of-file() \n\
-:Meta<Key>]:	forward-paragraph() \n\
-:Meta<Key>[:	backward-paragraph() \n\
-~Shift Meta<Key>Delete:		delete-previous-word() \n\
- Shift Meta<Key>Delete:		backward-kill-word() \n\
-~Shift Meta<Key>BackSpace:	delete-previous-word() \n\
- Shift Meta<Key>BackSpace:	backward-kill-word() \n\
-",
-#if IswVersion >= 11006
-*_IswDefaultTextTranslations3 = "\
-<Key>Home:	beginning-of-file() \n\
-:<Key>KP_Home:	beginning-of-file() \n\
-<Key>End:	end-of-file() \n\
-:<Key>KP_End:	end-of-file() \n\
+<Key>Home:	beginning-of-line() \n\
+:<Key>KP_Home:	beginning-of-line() \n\
+Shift<Key>Home:	beginning-of-file() \n\
+:Shift<Key>KP_Home:	beginning-of-file() \n\
+<Key>End:	end-of-line() \n\
+:<Key>KP_End:	end-of-line() \n\
+Shift<Key>End:	end-of-file() \n\
+:Shift<Key>KP_End:	end-of-file() \n\
 <Key>Next:	next-page() \n\
 :<Key>KP_Next:	next-page() \n\
 <Key>Prior:	previous-page() \n\
@@ -110,28 +58,9 @@ Meta<Key>Z:	scroll-one-line-down() \n\
 <Key>Delete:	delete-previous-character() \n\
 :<Key>KP_Delete: delete-previous-character() \n\
 <Key>BackSpace:	delete-previous-character() \n\
-<Key>Linefeed:	newline-and-indent() \n\
 <Key>Return:	newline() \n\
 :<Key>KP_Enter:	newline() \n\
-Ctrl<Key>backslash:	reconnect-im() \n\
-<Key>Kanji:	reconnect-im()\n\
 <Key>:		insert-char() \n\
-",
-#else
-*_IswDefaultTextTranslations3 = "\
-<Key>Right:	forward-character() \n\
-<Key>Left:	backward-character() \n\
-<Key>Down:	next-line() \n\
-<Key>Up:	previous-line() \n\
-<Key>Delete:	delete-previous-character() \n\
-<Key>BackSpace:	delete-previous-character() \n\
-<Key>Linefeed:	newline-and-indent() \n\
-<Key>Return:	newline() \n\
-<Key>KP_Enter:	newline() \n\
-<Key>:		insert-char() \n\
-",
-#endif
-*_IswDefaultTextTranslations4 = "\
 <EnterWindow>:	enter-window() \n\
 <LeaveWindow>:	leave-window() \n\
 <FocusIn>:	focus-in() \n\
@@ -142,5 +71,5 @@ Ctrl<Key>backslash:	reconnect-im() \n\
 <Btn2Down>:	insert-selection(PRIMARY, CLIPBOARD) \n\
 <Btn3Down>:	extend-start() \n\
 <Btn3Motion>:	extend-adjust() \n\
-<Btn3Up>:	extend-end(PRIMARY, CLIPBOARD) \
+<Btn3Up>:	extend-end(PRIMARY, CLIPBOARD) \n\
 ";

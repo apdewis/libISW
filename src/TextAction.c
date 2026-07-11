@@ -54,18 +54,6 @@ in this Software without prior written authorization from the X Consortium.
 #define IswTextActionMaxHexChars 100
 
 /*
- * These are defined in TextPop.c
- */
-
-extern void _IswTextInsertFileAction(Widget, IswEvent *, String *, Cardinal *);
-extern void _IswTextInsertFile(Widget, IswEvent *, String *, Cardinal *);
-extern void _IswTextSearch(Widget, IswEvent *, String *, Cardinal *);
-extern void _IswTextDoSearchAction(Widget, IswEvent *, String *, Cardinal *);
-extern void _IswTextDoReplaceAction(Widget, IswEvent *, String *, Cardinal *);
-extern void _IswTextSetField(Widget, IswEvent *, String *, Cardinal *);
-extern void _IswTextPopdownSearchAction(Widget, IswEvent *, String *, Cardinal *);
-
-/*
  * These are defined in Text.c
  */
 
@@ -1434,10 +1422,6 @@ IswActionsRec _IswTextActionsTable[] = {
 
   {"forward-character", 	MoveForwardChar},
   {"backward-character", 	MoveBackwardChar},
-  {"forward-word", 		MoveForwardWord},
-  {"backward-word", 		MoveBackwardWord},
-  {"forward-paragraph", 	MoveForwardParagraph},
-  {"backward-paragraph", 	MoveBackwardParagraph},
   {"beginning-of-line", 	MoveToLineStart},
   {"end-of-line", 		MoveToLineEnd},
   {"next-line", 		MoveNextLine},
@@ -1453,27 +1437,11 @@ IswActionsRec _IswTextActionsTable[] = {
 
   {"delete-next-character", 	DeleteForwardChar},
   {"delete-previous-character", DeleteBackwardChar},
-  {"delete-next-word", 		DeleteForwardWord},
-  {"delete-previous-word", 	DeleteBackwardWord},
   {"delete-selection", 		DeleteCurrentSelection},
-
-/* kill bindings */
-
-  {"kill-word", 		KillForwardWord},
-  {"backward-kill-word", 	KillBackwardWord},
   {"kill-selection", 		KillCurrentSelection},
-  {"kill-to-end-of-line", 	KillToEndOfLine},
-  {"kill-to-end-of-paragraph", 	KillToEndOfParagraph},
-
-/* new line stuff */
-
-  {"newline-and-indent", 	InsertNewLineAndIndent},
-  {"newline-and-backup", 	InsertNewLineAndBackup},
-  {"newline", 			InsertNewLine},
 
 /* Selection stuff */
 
-  {"select-word", 		SelectWord},
   {"select-all", 		SelectAll},
   {"select-start", 		SelectStart},
   {"select-adjust", 		SelectAdjust},
@@ -1487,9 +1455,6 @@ IswActionsRec _IswTextActionsTable[] = {
 
 /* Miscellaneous */
 
-  {"redraw-display", 		RedrawDisplay},
-  {"insert-file", 		_IswTextInsertFile},
-  {"search",		        _IswTextSearch},
   {"insert-char", 		InsertChar},
   {"insert-string",		InsertString},
   {"focus-in", 	 	        TextFocusIn},
@@ -1497,18 +1462,7 @@ IswActionsRec _IswTextActionsTable[] = {
   {"enter-window", 	 	TextEnterWindow},
   {"leave-window", 		TextLeaveWindow},
   {"display-caret",		DisplayCaret},
-  {"multiply",		        Multiply},
-  {"form-paragraph",            FormParagraph},
-  {"transpose-characters",      TransposeCharacters},
-  {"no-op",                     NoOp},
-
-/* Action to bind special translations for text Dialogs. */
-
-  {"InsertFileAction",          _IswTextInsertFileAction},
-  {"DoSearchAction",            _IswTextDoSearchAction},
-  {"DoReplaceAction",           _IswTextDoReplaceAction},
-  {"SetField",                  _IswTextSetField},
-  {"PopdownSearchAction",       _IswTextPopdownSearchAction}
+  {"no-op",                     NoOp}
 };
 
 Cardinal _IswTextActionsTableCount = IswNumber(_IswTextActionsTable);

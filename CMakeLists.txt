@@ -298,7 +298,6 @@ set(ISW_WIDGET_SOURCES
     src/Tabs.c
     src/TextAction.c
     src/Text.c
-    src/TextPop.c
     src/TextSink.c
     src/TextSrc.c
     src/TextTr.c
