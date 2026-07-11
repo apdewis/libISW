@@ -384,6 +384,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       smw->simple_menu.menu_height = FALSE;
       smw->core.height = GetMenuHeight(new);
   }
+
+  /* An in-window menu must composite above all other content in its host
+       window. */
+  smw->core.windowless_overlay = True;
 }
 
 /*      Function Name: Destroy
@@ -1447,11 +1451,8 @@ IswSimpleMenuShow(Widget menu, int x, int y)
 
     MoveMenu(menu, (Position) x, (Position) y, &cx, &cy);
 
-    /* An in-window menu must composite above all other content in its host
-       window. */
-    menu->core.windowless_overlay = True;
-
-    if(IswIsOverrideShell(parent)) {
+    //handle differently if in a popupshell
+    if(!menu->core.windowless_overlay) {
         IswMoveWidget(parent, (Position) x, (Position) y);
     } else {
         IswMoveWidget(menu, cx - par_off_x, cy - par_off_y);
@@ -1466,7 +1467,7 @@ IswSimpleMenuShow(Widget menu, int x, int y)
 
     /* If this menu is shown in a popup shell, forward its popdown callbacks
      * to the shell so they fire when the shell pops down. */
-    if (parent != NULL && IswIsShell(parent)) {
+    if (parent != NULL && IswIsShell(parent) && IswIsOverrideShell(parent) && !IswIsTopLevelShell(parent)) {
         IswPopup(parent, IswGrabNonexclusive);
     }
     IswCallCallbacks(menu, IswNpopupCallback, (IswPointer) NULL);
@@ -1492,7 +1493,7 @@ IswSimpleMenuHide(Widget menu)
 
     /* If this menu is shown in a popup shell, forward its popdown callbacks
      * to the shell so they fire when the shell pops down. */
-    if (parent != NULL && IswIsOverrideShell(parent)) {
+    if (!menu->core.windowless_overlay) {
         IswPopdown(parent);
     }
 
@@ -1524,6 +1525,8 @@ IswCreateMenuPopupShell(_Xconst char *name, Widget parent,
 			       NULL, 0);
     menu = IswCreateManagedWidget((String) name, simpleMenuWidgetClass, shell,
 				 args, num_args);
+
+    menu->core.windowless_overlay = False;
     return menu;
 }
 
