@@ -123,6 +123,8 @@ _IswDescaleEventCoords(IswEvent *event, double sf)
         event->key.y = (int32_t)(event->key.y * inv);
         event->key.root_x = (int16_t)(event->key.root_x * inv);
         event->key.root_y = (int16_t)(event->key.root_y * inv);
+        event->key.shell_x = (int16_t)(event->key.shell_x * inv);
+        event->key.shell_y = (int16_t)(event->key.shell_y * inv);
         break;
     case IswButtonDown:
     case IswButtonUp:
@@ -130,12 +132,16 @@ _IswDescaleEventCoords(IswEvent *event, double sf)
         event->button.y = (int32_t)(event->button.y * inv);
         event->button.root_x = (int16_t)(event->button.root_x * inv);
         event->button.root_y = (int16_t)(event->button.root_y * inv);
+        event->button.shell_x = (int16_t)(event->button.shell_x * inv);
+        event->button.shell_y = (int16_t)(event->button.shell_y * inv);
         break;
     case IswMotion:
         event->motion.x = (int32_t)(event->motion.x * inv);
         event->motion.y = (int32_t)(event->motion.y * inv);
         event->motion.root_x = (int16_t)(event->motion.root_x * inv);
         event->motion.root_y = (int16_t)(event->motion.root_y * inv);
+        event->motion.shell_x = (int16_t)(event->motion.shell_x * inv);
+        event->motion.shell_y = (int16_t)(event->motion.shell_y * inv);
         break;
     case IswEnter:
     case IswLeave:
@@ -143,6 +149,8 @@ _IswDescaleEventCoords(IswEvent *event, double sf)
         event->crossing.y = (int32_t)(event->crossing.y * inv);
         event->crossing.root_x = (int16_t)(event->crossing.root_x * inv);
         event->crossing.root_y = (int16_t)(event->crossing.root_y * inv);
+        event->crossing.shell_x = (int16_t)(event->crossing.shell_x * inv);
+        event->crossing.shell_y = (int16_t)(event->crossing.shell_y * inv);
         break;
     case IswRedraw:
         event->redraw.x = (int16_t)(event->redraw.x * inv);
@@ -849,6 +857,10 @@ _IswSynthesizeCrossing(Widget w, IswEvent *source, IswEventKind kind)
     ev.crossing.modifiers = IswEventModifiers(source);
     ev.crossing.x = (int32_t) (IswEventX(source) - dx);
     ev.crossing.y = (int32_t) (IswEventY(source) - dy);
+    ev.crossing.root_x = IswEventRootX(source);
+    ev.crossing.root_y = IswEventRootY(source);
+    ev.crossing.shell_x = IswEventShellX(source);
+    ev.crossing.shell_y = IswEventShellY(source);
     ev.any.time = source->any.time;
     ev.any.target = (IswEventTarget) (void *) w;
 

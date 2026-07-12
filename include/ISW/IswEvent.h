@@ -218,6 +218,7 @@ typedef struct {
     uint16_t    modifiers;   /* IswModMask */
     int32_t     x, y;        /* pointer position, widget-local logical px */
     int16_t     root_x, root_y; /* pointer position, screen-relative */
+    int16_t     shell_x, shell_y; /* pointer position, top-level shell window */
 } IswKeyEvent;
 
 /* Button down / up. */
@@ -227,6 +228,7 @@ typedef struct {
     uint16_t    modifiers;   /* IswModMask, incl. held buttons */
     int32_t     x, y;        /* widget-local logical px */
     int16_t     root_x, root_y;
+    int16_t     shell_x, shell_y;
 } IswButtonEvent;
 
 /* Pointer motion. */
@@ -235,6 +237,7 @@ typedef struct {
     uint16_t    modifiers;
     int32_t     x, y;
     int16_t     root_x, root_y;
+    int16_t     shell_x, shell_y;
 } IswMotionEvent;
 
 /* Enter / leave. */
@@ -245,6 +248,7 @@ typedef struct {
     uint16_t        modifiers;
     int32_t         x, y;
     int16_t         root_x, root_y;
+    int16_t         shell_x, shell_y;
     uint8_t         same_screen; /* pointer on same screen + window focused */
 } IswCrossingEvent;
 
@@ -337,9 +341,12 @@ typedef union _IswEvent {
  * Neutral field accessors
  * -----------------------------------------------------------------------
  * Read the common fields without knowing which variant is active.  The
- * pointer-position accessors return the widget-local logical coordinate
- * carried by whichever input variant the event is (key / button / motion /
- * crossing); they return 0 for events with no pointer position.
+ * pointer-position accessors return the coordinate carried by whichever input
+ * variant the event is (key / button / motion / crossing); they return 0 for
+ * events with no pointer position.  Three coordinate pairs are exposed:
+ *  - IswEventX/Y:        widget-local logical px.
+ *  - IswEventRootX/RootY: screen-relative.
+ *  - IswEventShellX/ShellY: relative to the top-level shell window.
  */
 
 static inline int32_t IswEventX(const IswEvent *e)
@@ -360,6 +367,53 @@ static inline int32_t IswEventY(const IswEvent *e)
     case IswButtonDown: case IswButtonUp:     return e->button.y;
     case IswMotion:                           return e->motion.y;
     case IswEnter: case IswLeave:             return e->crossing.y;
+    default:                                  return 0;
+    }
+}
+
+/* Screen-relative pointer position (logical px); 0 for non-pointer events. */
+static inline int16_t IswEventRootX(const IswEvent *e)
+{
+    switch (e->kind) {
+    case IswKeyDown: case IswKeyUp:           return e->key.root_x;
+    case IswButtonDown: case IswButtonUp:     return e->button.root_x;
+    case IswMotion:                           return e->motion.root_x;
+    case IswEnter: case IswLeave:             return e->crossing.root_x;
+    default:                                  return 0;
+    }
+}
+
+static inline int16_t IswEventRootY(const IswEvent *e)
+{
+    switch (e->kind) {
+    case IswKeyDown: case IswKeyUp:           return e->key.root_y;
+    case IswButtonDown: case IswButtonUp:     return e->button.root_y;
+    case IswMotion:                           return e->motion.root_y;
+    case IswEnter: case IswLeave:             return e->crossing.root_y;
+    default:                                  return 0;
+    }
+}
+
+/* Pointer position relative to the top-level shell window (logical px);
+   0 for non-pointer events. */
+static inline int16_t IswEventShellX(const IswEvent *e)
+{
+    switch (e->kind) {
+    case IswKeyDown: case IswKeyUp:           return e->key.shell_x;
+    case IswButtonDown: case IswButtonUp:     return e->button.shell_x;
+    case IswMotion:                           return e->motion.shell_x;
+    case IswEnter: case IswLeave:             return e->crossing.shell_x;
+    default:                                  return 0;
+    }
+}
+
+static inline int16_t IswEventShellY(const IswEvent *e)
+{
+    switch (e->kind) {
+    case IswKeyDown: case IswKeyUp:           return e->key.shell_y;
+    case IswButtonDown: case IswButtonUp:     return e->button.shell_y;
+    case IswMotion:                           return e->motion.shell_y;
+    case IswEnter: case IswLeave:             return e->crossing.shell_y;
     default:                                  return 0;
     }
 }

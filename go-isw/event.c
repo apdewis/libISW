@@ -13,6 +13,7 @@ typedef struct {
 	uint16_t modifiers;
 	int32_t x, y;
 	int16_t root_x, root_y;
+	int16_t shell_x, shell_y;
 
 	uint8_t button;
 
@@ -53,6 +54,8 @@ void isw_event_flatten(const IswEvent *e, IswEventFlat *out) {
 		out->y         = e->key.y;
 		out->root_x    = e->key.root_x;
 		out->root_y    = e->key.root_y;
+		out->shell_x   = e->key.shell_x;
+		out->shell_y   = e->key.shell_y;
 		break;
 	case IswButtonDown:
 	case IswButtonUp:
@@ -62,6 +65,8 @@ void isw_event_flatten(const IswEvent *e, IswEventFlat *out) {
 		out->y         = e->button.y;
 		out->root_x    = e->button.root_x;
 		out->root_y    = e->button.root_y;
+		out->shell_x   = e->button.shell_x;
+		out->shell_y   = e->button.shell_y;
 		break;
 	case IswMotion:
 		out->modifiers = e->motion.modifiers;
@@ -69,6 +74,8 @@ void isw_event_flatten(const IswEvent *e, IswEventFlat *out) {
 		out->y         = e->motion.y;
 		out->root_x    = e->motion.root_x;
 		out->root_y    = e->motion.root_y;
+		out->shell_x   = e->motion.shell_x;
+		out->shell_y   = e->motion.shell_y;
 		break;
 	case IswEnter:
 	case IswLeave:
@@ -79,6 +86,8 @@ void isw_event_flatten(const IswEvent *e, IswEventFlat *out) {
 		out->y             = e->crossing.y;
 		out->root_x        = e->crossing.root_x;
 		out->root_y        = e->crossing.root_y;
+		out->shell_x       = e->crossing.shell_x;
+		out->shell_y       = e->crossing.shell_y;
 		out->same_screen   = e->crossing.same_screen;
 		break;
 	case IswFocusIn:

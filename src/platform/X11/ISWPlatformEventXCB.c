@@ -184,6 +184,40 @@ target_for_window(IswDisplay dpy, xcb_window_t window)
     return (IswEventTarget) (void *) _IswXcbWidgetForWindow(dpy, window);
 }
 
+/* Resolve the pointer position relative to the top-level shell window's
+   content origin, in physical pixels (the dispatch core descales to logical).
+   When the event window IS the shell window (the common case in this
+   windowless toolkit), the native event_x/event_y are already shell-relative
+   and are copied straight through.  Otherwise the shell's screen origin is
+   obtained via xcb_translate_coordinates and subtracted from root_x/root_y.
+   On failure (no shell / translate error) the coordinates are left at 0. */
+static void
+shell_coords_for_event(IswDisplay dpy, xcb_window_t event_win,
+                       int16_t event_x, int16_t event_y,
+                       int16_t root_x, int16_t root_y,
+                       int16_t *shell_x, int16_t *shell_y)
+{
+    Widget tgt = _IswXcbWidgetForWindow(dpy, event_win);
+    Widget shell = tgt ? _IswWidgetAncestor(tgt) : NULL;
+    IswWindow swin;
+
+    if (shell == NULL)
+        return;
+    swin = _IswPlatformWidgetWindow(dpy, shell);
+    if (_IswXcbWindow(swin) == event_win) {
+        *shell_x = event_x;
+        *shell_y = event_y;
+        return;
+    }
+    {
+        int sx = 0, sy = 0;
+        if (_IswPlatformTranslateToRoot(dpy, swin, 0, 0, &sx, &sy)) {
+            *shell_x = (int16_t)(root_x - sx);
+            *shell_y = (int16_t)(root_y - sy);
+        }
+    }
+}
+
 /*
  * _IswEventFromXcb - translate a native XCB event into a neutral IswEvent.
  *
@@ -236,6 +270,9 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->key.y = e->event_y;
         out->key.root_x = e->root_x;
         out->key.root_y = e->root_y;
+        shell_coords_for_event(dpy, e->event, e->event_x, e->event_y,
+                               e->root_x, e->root_y,
+                               &out->key.shell_x, &out->key.shell_y);
         IswTranslateKeycode(dpy, (IswKeyCode) e->detail, e->state,
                             &mods_ret, &ks);
         out->key.key = keysym_to_key(ks, &out->key.unicode, out->key.text);
@@ -253,6 +290,9 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->button.y = e->event_y;
         out->button.root_x = e->root_x;
         out->button.root_y = e->root_y;
+        shell_coords_for_event(dpy, e->event, e->event_x, e->event_y,
+                               e->root_x, e->root_y,
+                               &out->button.shell_x, &out->button.shell_y);
         return True;
     }
     case XCB_MOTION_NOTIFY: {
@@ -265,6 +305,9 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->motion.y = e->event_y;
         out->motion.root_x = e->root_x;
         out->motion.root_y = e->root_y;
+        shell_coords_for_event(dpy, e->event, e->event_x, e->event_y,
+                               e->root_x, e->root_y,
+                               &out->motion.shell_x, &out->motion.shell_y);
         return True;
     }
     case XCB_ENTER_NOTIFY:
@@ -284,6 +327,9 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->crossing.y = e->event_y;
         out->crossing.root_x = e->root_x;
         out->crossing.root_y = e->root_y;
+        shell_coords_for_event(dpy, e->event, e->event_x, e->event_y,
+                               e->root_x, e->root_y,
+                               &out->crossing.shell_x, &out->crossing.shell_y);
         out->crossing.same_screen = (e->same_screen_focus & 0x01) ? 1 : 0;
         return True;
     }

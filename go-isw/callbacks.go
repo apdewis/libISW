@@ -17,6 +17,7 @@ typedef struct {
 	uint16_t modifiers;
 	int32_t x, y;
 	int16_t root_x, root_y;
+	int16_t shell_x, shell_y;
 	uint8_t button;
 	int notify_mode;
 	int notify_detail;
@@ -201,6 +202,8 @@ func flatToEvent(flat *C.IswEventFlat) Event {
 			Y:         int32(flat.y),
 			RootX:     int16(flat.root_x),
 			RootY:     int16(flat.root_y),
+			ShellX:    int16(flat.shell_x),
+			ShellY:    int16(flat.shell_y),
 		}
 	case ButtonDown, ButtonUp:
 		return &ButtonEvent{
@@ -211,6 +214,8 @@ func flatToEvent(flat *C.IswEventFlat) Event {
 			Y:         int32(flat.y),
 			RootX:     int16(flat.root_x),
 			RootY:     int16(flat.root_y),
+			ShellX:    int16(flat.shell_x),
+			ShellY:    int16(flat.shell_y),
 		}
 	case Motion:
 		return &MotionEvent{
@@ -220,6 +225,8 @@ func flatToEvent(flat *C.IswEventFlat) Event {
 			Y:         int32(flat.y),
 			RootX:     int16(flat.root_x),
 			RootY:     int16(flat.root_y),
+			ShellX:    int16(flat.shell_x),
+			ShellY:    int16(flat.shell_y),
 		}
 	case Enter, Leave:
 		return &CrossingEvent{
@@ -231,6 +238,8 @@ func flatToEvent(flat *C.IswEventFlat) Event {
 			Y:          int32(flat.y),
 			RootX:      int16(flat.root_x),
 			RootY:      int16(flat.root_y),
+			ShellX:     int16(flat.shell_x),
+			ShellY:     int16(flat.shell_y),
 			SameScreen: flat.same_screen != 0,
 		}
 	case FocusIn, FocusOut:

@@ -150,6 +150,8 @@ type KeyEvent struct {
 	X, Y      int32
 	RootX     int16
 	RootY     int16
+	ShellX    int16
+	ShellY    int16
 }
 
 // ButtonEvent represents a button press or release.
@@ -160,6 +162,8 @@ type ButtonEvent struct {
 	X, Y      int32
 	RootX     int16
 	RootY     int16
+	ShellX    int16
+	ShellY    int16
 }
 
 // MotionEvent represents pointer motion.
@@ -169,6 +173,8 @@ type MotionEvent struct {
 	X, Y      int32
 	RootX     int16
 	RootY     int16
+	ShellX    int16
+	ShellY    int16
 }
 
 // CrossingEvent represents pointer enter/leave.
@@ -180,6 +186,8 @@ type CrossingEvent struct {
 	X, Y       int32
 	RootX      int16
 	RootY      int16
+	ShellX     int16
+	ShellY     int16
 	SameScreen bool
 }
 

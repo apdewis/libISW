@@ -842,19 +842,19 @@ PositionMenuAction(Widget w, IswEvent *iswev, String * params, Cardinal * num_pa
   switch (iswev->kind) {
   case IswButtonDown:
   case IswButtonUp:
-    loc.x = iswev->button.root_x;
-    loc.y = iswev->button.root_y;
+    loc.x = iswev->button.shell_x;
+    loc.y = iswev->button.shell_y;
     PositionMenu(menu, &loc);
     break;
   case IswEnter:
   case IswLeave:
-    loc.x = iswev->crossing.root_x;
-    loc.y = iswev->crossing.root_y;
+    loc.x = iswev->crossing.shell_x;
+    loc.y = iswev->crossing.shell_y;
     PositionMenu(menu, &loc);
     break;
   case IswMotion:
-    loc.x = iswev->motion.root_x;
-    loc.y = iswev->motion.root_y;
+    loc.x = iswev->motion.shell_x;
+    loc.y = iswev->motion.shell_y;
     PositionMenu(menu, &loc);
     break;
   default:
@@ -1441,7 +1441,7 @@ IswSimpleMenuShow(Widget menu, int x, int y)
      * the final on-screen position matches the requested ancestor coords. */
     
     ancestor = _IswWidgetAncestor(menu);
-    if (parent != NULL && parent != ancestor && !IswIsShell(parent)) {
+    if (parent != NULL && parent != ancestor) {
 	    IswTranslateCoords(parent, 0, 0, &par_root_x, &par_root_y);
 	    if (ancestor != NULL)
 	        _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
@@ -1719,7 +1719,6 @@ PositionMenu(Widget w, XPoint * location)
     SmeObject entry;
     XPoint t_point;
     Widget ancestor;
-    Position anc_root_x = 0, anc_root_y = 0;
 
     /*
      * The width will not be correct unless it is realized.  Realizing also
@@ -1731,36 +1730,37 @@ PositionMenu(Widget w, XPoint * location)
     ancestor = _IswWidgetAncestor(w);
 
     if (location == NULL) {
-        int root_x, root_y, win_x, win_y;
-        IswModMask mods;
-        IswWindow child;
+	int root_x, root_y, win_x, win_y;
+	IswModMask mods;
+	IswWindow child;
+	Position anc_root_x = 0, anc_root_y = 0;
 
-        location = &t_point;
-        if (!_IswPlatformQueryPointer(IswDisplayOf(w),
-                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                &root_x, &root_y, &win_x, &win_y, &mods, &child)) {
-                   char error_buf[BUFSIZ];
-                   (void) sprintf(error_buf, "%s %s", "Isw Simple Menu Widget:",
-                       "Could not find location of mouse pointer");
-                       IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
-                       return;
-        }
+	location = &t_point;
+	if (!_IswPlatformQueryPointer(IswDisplayOf(w),
+		_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+		&root_x, &root_y, &win_x, &win_y, &mods, &child)) {
+		   char error_buf[BUFSIZ];
+		   (void) sprintf(error_buf, "%s %s", "Isw Simple Menu Widget:",
+		       "Could not find location of mouse pointer");
+		       IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
+		       return;
+	}
 
-        location->x = (short) root_x;
-        location->y = (short) root_y;
+	/* QueryPointer returns screen-relative root coords; convert to the
+	   shell window's coordinate space by subtracting its screen origin. */
+	if (ancestor != NULL)
+	    _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
+
+	location->x = (short)(root_x - anc_root_x);
+	location->y = (short)(root_y - anc_root_y);
     }
 
     /*
-     * The incoming location is in root (screen) coordinates.  The menu is a
-     * windowless child of its ancestor window, so translate into that
-     * window's coordinate space by subtracting the ancestor's screen origin.
+     * The incoming location is now relative to the menu's shell window (either
+     * carried by the triggering event's shell_x/shell_y, or converted from the
+     * QueryPointer root coords above).  The menu is a windowless child of that
+     * shell, so no further origin translation is needed.
      */
-    if (ancestor != NULL)
-	_IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
-
-    location->x -= anc_root_x;
-    location->y -= anc_root_y;
-
     location->x -= (Position) w->core.width/2;
 
     if (smw->simple_menu.popup_entry == NULL)
