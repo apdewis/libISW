@@ -1432,6 +1432,7 @@ IswActionsRec _IswTextActionsTable[] = {
   {"end-of-file", 		MoveEndOfFile},
   {"scroll-one-line-up", 	ScrollOneLineUp},
   {"scroll-one-line-down", 	ScrollOneLineDown},
+  {"newline", 			InsertNewLine},
 
 /* delete bindings */
 
