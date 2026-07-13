@@ -205,6 +205,19 @@ typedef struct _TextPart {
     /* private state, shared w/Source and Sink */
     Boolean	    redisplay_needed; /* in SetValues */
     IswTextSelectionSalt    *salt2;	     /* salted away selections */
+
+    /*
+     * Line-based scrollbar thumb cache.  The thumb is sized/positioned in
+     * source-line units (newline-delimited lines) rather than character
+     * positions, so that the thumb no longer changes size depending on how
+     * many empty (short) lines happen to be visible.  See Text.c
+     * (CheckVBarScrolling, VJump, CountNewlines, TotalLines, TopLineNumber).
+     */
+    int		    total_lines;	/* cached count of source lines. */
+    Boolean	    total_lines_valid;	/* is total_lines current? */
+    int		    top_line;		/* source-line index of top_line_anchor. */
+    ISWTextPosition  top_line_anchor;	/* position to which top_line applies. */
+    Boolean	    top_line_valid;	/* is top_line/top_line_anchor current? */
 } TextPart;
 
 /*************************************************************

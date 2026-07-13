@@ -1045,6 +1045,106 @@ GetWidestLine(TextWidget ctx)
   return(widest);
 }
 
+/*
+ * Line-counting helpers used to drive a *line-based* scrollbar thumb, so the
+ * thumb no longer resizes based on how many empty/short lines are visible.
+ *
+ * The source only tracks a character length, so newline counts are obtained by
+ * walking the source text.  These walks are kept cheap:
+ *   - total line count is cached and only recomputed when the source changes;
+ *   - the top line number is cached relative to a known (position, line) pair
+ *     and adjusted incrementally by counting newlines only across the distance
+ *     the top actually moved (which is tiny for ordinary line-by-line scroll).
+ */
+
+/* Count newline characters in the half-open range [from, to). */
+static long
+CountNewlines(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
+{
+  Widget src = ctx->text.source;
+  ISWTextBlock blk;
+  ISWTextPosition pos, next;
+  long count = 0;
+
+  if (to <= from)
+    return 0;
+
+  pos = from;
+  while (pos < to) {
+    blk.ptr = NULL;
+    blk.length = 0;
+    blk.firstPos = 0;
+    next = IswTextSourceRead(src, pos, &blk, (int)(to - pos));
+    if (blk.length <= 0 || next <= pos)
+      break;
+    {
+      const char *p = blk.ptr;
+      int n = blk.length;
+      while (n-- > 0)
+	if (*p++ == '\n')
+	  count++;
+    }
+    pos = next;
+  }
+  return count;
+}
+
+/* Total number of source lines in the whole document (cached). */
+static int
+TotalLines(TextWidget ctx)
+{
+  if (!ctx->text.total_lines_valid) {
+    if (ctx->text.lastPos <= 0)
+      ctx->text.total_lines = 1;
+    else
+      ctx->text.total_lines = (int)CountNewlines(ctx, 0, ctx->text.lastPos) + 1;
+    ctx->text.total_lines_valid = True;
+  }
+  return ctx->text.total_lines;
+}
+
+/*
+ * 0-based source-line index of the line that starts at the current line-table
+ * top (ctx->text.lt.top).  Maintained incrementally from the last known
+ * (position, line) anchor so that line-by-line scrolling stays O(distance)
+ * rather than O(document).  After an edit the cache is invalidated and the
+ * next call recomputes from the beginning of the document.
+ */
+static int
+TopLineNumber(TextWidget ctx)
+{
+  ISWTextPosition top = ctx->text.lt.top;
+
+  if (ctx->text.top_line_valid && ctx->text.top_line_anchor == top)
+    return ctx->text.top_line;
+
+  if (ctx->text.top_line_valid && ctx->text.top_line_anchor >= 0) {
+    ISWTextPosition a = ctx->text.top_line_anchor;
+    if (top > a)
+      ctx->text.top_line += (int)CountNewlines(ctx, a, top);
+    else if (top < a)
+      ctx->text.top_line -= (int)CountNewlines(ctx, top, a);
+    if (ctx->text.top_line < 0)
+      ctx->text.top_line = 0;
+  }
+  else {
+    /* Cache cold (e.g. right after an edit): count from the top. */
+    ctx->text.top_line = (int)CountNewlines(ctx, 0, top);
+  }
+  ctx->text.top_line_anchor = top;
+  ctx->text.top_line_valid = True;
+  return ctx->text.top_line;
+}
+
+/* Invalidate the line-based thumb caches; called after any source edit or
+ * source change, since those can alter newline counts and shift positions. */
+static void
+InvalidateLineCaches(TextWidget ctx)
+{
+  ctx->text.total_lines_valid = False;
+  ctx->text.top_line_valid = False;
+}
+
 static void
 CheckVBarScrolling(TextWidget ctx)
 {
@@ -1055,9 +1155,25 @@ CheckVBarScrolling(TextWidget ctx)
 
   if ( (ctx->text.lastPos > 0) && (ctx->text.lt.lines > 0)) {
     ISWTextPosition visible_end, raw_pos;
+    int total_lines, top_line, bottom_line;
 
-    first = ctx->text.lt.top;
-    first /= (float) ctx->text.lastPos;
+    /*
+     * Size and position the thumb in *source-line* units (newline-delimited
+     * lines), not character positions.  With the old character-based math the
+     * thumb size was (visible_chars / total_chars); a viewport full of empty
+     * lines spans only a few characters (just the newlines) and so produced a
+     * tiny thumb, while a viewport full of long lines produced a large thumb.
+     * Line-based math keeps the thumb stable regardless of line content.
+     */
+    total_lines = TotalLines(ctx);
+    if (total_lines <= 0) {
+      /* Degenerate (e.g. empty) source: leave a full thumb. */
+      first = 0.0f;
+      last = 1.0f;
+      goto set_thumb;
+    }
+
+    top_line = TopLineNumber(ctx);
 
     /* Get the visible end position, but clamp to lastPos
      * (line table uses sentinel values > lastPos) */
@@ -1066,8 +1182,32 @@ CheckVBarScrolling(TextWidget ctx)
     if (visible_end > ctx->text.lastPos)
       visible_end = ctx->text.lastPos;
 
-    last = visible_end;
-    last /= (float) ctx->text.lastPos;
+    /*
+     * The line table stores either the start of the first line *below* the
+     * viewport (a real line boundary, when more text follows) or a sentinel
+     * of (lastPos + 100) when the document end is visible.  Count the
+     * source-line boundaries crossed inside the visible window; when the end
+     * of the document is visible, pin the thumb's bottom edge to 1.0 so the
+     * thumb becomes full (and the scrollbar can hide) -- matching the old
+     * character-based behaviour in that respect.
+     */
+    bottom_line = top_line + (int)CountNewlines(ctx, ctx->text.lt.top,
+						visible_end);
+    if (raw_pos >= ctx->text.lastPos)
+      bottom_line = total_lines;	/* end of document is visible */
+    if (bottom_line > total_lines)
+      bottom_line = total_lines;
+
+    first = (float)top_line / (float)total_lines;
+    last  = (float)bottom_line / (float)total_lines;
+    if (last > 1.0f) last = 1.0f;
+    /* Floor the thumb so a single (possibly wrapped) source line that fills
+     * the viewport never makes the thumb disappear. */
+    if (last < first + (1.0f / (float)total_lines))
+      last = first + (1.0f / (float)total_lines);
+    if (last > 1.0f) last = 1.0f;
+
+  set_thumb:
 
     if (ctx->text.scroll_vert == IswtextScrollWhenNeeded) {
       int line;
@@ -1336,13 +1476,12 @@ VScroll(Widget w, IswPointer closure, IswPointer callData)
 /*
  * The routine "thumbs" the displayed text. Thumbing means reposition the
  * displayed view of the source to a new position determined by a fraction
- * of the way from beginning to end. Ideally, this should be determined by
- * the number of displayable lines in the source. This routine does it as a
- * fraction of the first position and last position and then normalizes to
- * the start of the line containing the position.
- *
- * BUG/deficiency: The normalize to line portion of this routine will
- * cause thumbing to always position to the start of the source.
+ * of the way from beginning to end.  The thumb fraction is now interpreted
+ * over *lines* (consistent with the line-based thumb sized in
+ * CheckVBarScrolling), so it is converted to a target line index and then to
+ * the source position at the start of that line.  The conversion is anchored
+ * at the current top line so it only scans as many lines as the thumb actually
+ * moves.
  */
 
 /*ARGSUSED*/
@@ -1353,6 +1492,7 @@ VJump(Widget w, IswPointer closure, IswPointer callData)
   TextWidget ctx = (TextWidget)closure;
   ISWTextPosition position, old_top, old_bot;
   IswTextLineTable * lt = &(ctx->text.lt);
+  int total_lines, target_line, cur_line, delta;
 
   _IswTextPrepareToUpdate(ctx);
   old_top = lt->top;
@@ -1361,8 +1501,37 @@ VJump(Widget w, IswPointer closure, IswPointer callData)
   else
     old_bot = ctx->text.lastPos;
 
-  position = (long) (*percent * (float) ctx->text.lastPos);
-  position= SrcScan(ctx->text.source, position, IswstEOL, IswsdLeft, 1, FALSE);
+  total_lines = TotalLines(ctx);
+  if (total_lines <= 0) {
+    _IswTextExecuteUpdate(ctx);
+    return;
+  }
+
+  /* The scrollbar reports the desired top as a fraction of the document; in
+   * line-based mode that fraction is over lines, not characters. */
+  target_line = (int)(*percent * (float)total_lines);
+  if (target_line < 0) target_line = 0;
+  if (target_line >= total_lines) target_line = total_lines - 1;
+
+  /* Convert the target line index to a source position, anchored at the
+   * current top line so we scan only the lines we actually traverse. */
+  cur_line = TopLineNumber(ctx);
+  delta = target_line - cur_line;
+  if (delta > 0)
+    position = SrcScan(ctx->text.source, lt->top, IswstEOL, IswsdRight,
+		      delta, TRUE);
+  else if (delta < 0)
+    position = SrcScan(ctx->text.source, lt->top, IswstEOL, IswsdLeft,
+		      -delta, FALSE);
+  else
+    position = lt->top;
+
+  /* Pre-seed the cache for this new top; the BuildLineTable call below keeps
+   * lt->top at exactly this position, so the anchor stays consistent. */
+  ctx->text.top_line = target_line;
+  ctx->text.top_line_anchor = position;
+  ctx->text.top_line_valid = True;
+
   if ( (position >= old_top) && (position <= old_bot) ) {
     int line = 0;
     for (;(line < lt->lines) && (position > lt->info[line].position) ; line++);
@@ -1551,6 +1720,9 @@ _IswTextReplace (TextWidget ctx, ISWTextPosition pos1, ISWTextPosition pos2,
   IswTextUnsetSelection((Widget)ctx);
 
   ctx->text.lastPos = GETLASTPOS;
+  /* An edit may add/remove newlines anywhere (including before the visible
+   * top), so the line-based thumb caches are no longer trustworthy. */
+  InvalidateLineCaches(ctx);
   if (ctx->text.lt.top >= ctx->text.lastPos) {
     _IswTextBuildLineTable(ctx, ctx->text.lastPos, FALSE);
     ClearWindow( (Widget) ctx);
@@ -2697,6 +2869,7 @@ IswTextSetSource(Widget w, Widget source, ISWTextPosition startPos)
   ctx->text.s.left = ctx->text.s.right = 0;
   ctx->text.insertPos = startPos;
   ctx->text.lastPos = GETLASTPOS;
+  InvalidateLineCaches(ctx);
 
   _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
   IswTextDisplay(w);
@@ -2795,6 +2968,7 @@ IswTextInvalidate(Widget w, ISWTextPosition from, ISWTextPosition to)
   from = FindGoodPosition(ctx, from);
   to = FindGoodPosition(ctx, to);
   ctx->text.lastPos = GETLASTPOS;
+  InvalidateLineCaches(ctx);
   _IswTextPrepareToUpdate(ctx);
   _IswTextNeedsUpdating(ctx, from, to);
   _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
@@ -2821,6 +2995,9 @@ IswTextEnableRedisplay(Widget w)
   lastPos = ctx->text.lastPos = GETLASTPOS;
   ctx->text.lt.top = FindGoodPosition(ctx, ctx->text.lt.top);
   ctx->text.insertPos = FindGoodPosition(ctx, ctx->text.insertPos);
+  /* While redisplay was disabled the source could have been edited without
+   * our line caches knowing, so drop them. */
+  InvalidateLineCaches(ctx);
   if ( (ctx->text.s.left > lastPos) || (ctx->text.s.right > lastPos) )
     ctx->text.s.left = ctx->text.s.right = 0;
 
