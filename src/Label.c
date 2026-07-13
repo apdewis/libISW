@@ -828,7 +828,6 @@ _Reposition(LabelWidget lw, Dimension width, Dimension height,
 
     if (newPos < (Position)leftedge)
 	    newPos = leftedge;
-    
     *dx = newPos - lw->label.label_x;
     lw->label.label_x = newPos;
 
@@ -869,7 +868,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     Boolean was_resized = False, redisplay = False, checks[NUM_CHECKS];
 
     for (i = 0; i < NUM_CHECKS; i++)
-	`checks[i] = FALSE;
+
+	checks[i] = FALSE;
 
     for (i = 0; i < *num_args; i++) {
 	    if (streq(IswNwidth, args[i].name))
