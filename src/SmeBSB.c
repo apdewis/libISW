@@ -342,6 +342,8 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
+	if (entry->sme_bsb.left_image)
+	    x_loc += entry->sme_bsb.left_image_width + 4;
 	int len = strlen(entry->sme_bsb.label);
 	int width, t_width;
 	const char * label = entry->sme_bsb.label;
@@ -695,6 +697,11 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
 
     *width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
 
+    if (entry->sme_bsb.left_image)
+	*width += entry->sme_bsb.left_image_width + 4;
+    if (entry->sme_bsb.right_image)
+	*width += entry->sme_bsb.right_image_width + 4;
+
     if (entry->sme_bsb.menu_name != NULL)
 	*width += SME_SUBMENU_ARROW_SIZE * 2 + 4;
 
@@ -727,7 +734,7 @@ DrawBitmaps(Widget w, Boolean highlighted)
 
     /* Draw left image */
     if (entry->sme_bsb.left_image) {
-        x_loc = (int)(entry->sme_bsb.left_margin - entry->sme_bsb.left_image_width) / 2;
+        x_loc = entry->sme_bsb.left_margin;
         y_loc = entry->rectangle.y +
                 (int)(entry->rectangle.height - entry->sme_bsb.left_image_height) / 2;
 

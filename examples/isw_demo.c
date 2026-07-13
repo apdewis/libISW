@@ -314,6 +314,76 @@ Widget create_main_window(Widget parent) {
     return main_win;
 }
 
+/* Inline SVG icons for menubar menu entries (24x24 viewBox, well under 48x48) */
+static const char *svg_menu_new =
+    "<svg viewBox='0 0 24 24'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' "
+    "fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<polyline points='14,2 14,8 20,8' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='12' y1='18' x2='12' y2='12' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='9' y1='15' x2='15' y2='15' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_open =
+    "<svg viewBox='0 0 24 24'><path d='M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' "
+    "fill='none' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_save =
+    "<svg viewBox='0 0 24 24'><path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z' "
+    "fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<polyline points='17,21 17,13 7,13 7,21' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<polyline points='7,3 7,8 15,8' fill='none' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_quit =
+    "<svg viewBox='0 0 24 24'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' "
+    "fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<polyline points='16,17 21,12 16,7' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='21' y1='12' x2='9' y2='12' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_undo =
+    "<svg viewBox='0 0 24 24'><polyline points='1,4 1,10 7,10' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<path d='M3.51 15a9 9 0 1 0 2.13-9.36L1 10' fill='none' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_redo =
+    "<svg viewBox='0 0 24 24'><polyline points='23,4 23,10 17,10' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<path d='M20.49 15a9 9 0 1 1-2.13-9.36L23 10' fill='none' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_cut =
+    "<svg viewBox='0 0 24 24'><circle cx='6' cy='6' r='3' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<circle cx='6' cy='18' r='3' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='20' y1='4' x2='8.12' y2='15.88' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='14.47' y1='14.48' x2='20' y2='20' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='8.12' y1='8.12' x2='12' y2='12' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_copy =
+    "<svg viewBox='0 0 24 24'><rect x='9' y='9' width='13' height='13' rx='2' ry='2' "
+    "fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1' "
+    "fill='none' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_paste =
+    "<svg viewBox='0 0 24 24'><path d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' "
+    "fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<rect x='8' y='2' width='8' height='4' rx='1' ry='1' fill='none' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_about =
+    "<svg viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='12' y1='16' x2='12' y2='12' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='12' y1='8' x2='12.01' y2='8' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_docs =
+    "<svg viewBox='0 0 24 24'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' "
+    "fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<polyline points='14,2 14,8 20,8' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='16' y1='13' x2='8' y2='13' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='16' y1='17' x2='8' y2='17' stroke='currentColor' stroke-width='2'/>"
+    "<polyline points='10,9 9,9 8,9' fill='none' stroke='currentColor' stroke-width='2'/></svg>";
+
+static const char *svg_menu_bug =
+    "<svg viewBox='0 0 24 24'><path d='M8 2v4' stroke='currentColor' stroke-width='2' fill='none'/>"
+    "<path d='M16 2v4' stroke='currentColor' stroke-width='2' fill='none'/>"
+    "<rect x='4' y='7' width='16' height='12' rx='2' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<circle cx='9' cy='13' r='1' fill='currentColor'/>"
+    "<circle cx='15' cy='13' r='1' fill='currentColor'/></svg>";
+
 void populate_menubar(Widget menubar, Widget accel_dest) {
     Widget file_button, edit_button, about_button;
     Widget file_menu, edit_menu, about_menu;
@@ -331,18 +401,21 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "New");
     IswArgMnemonicKey(&ab, 'n');
+    IswArgLeftImage(&ab, svg_menu_new);
     entry = IswCreateManagedWidget("menuNew", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"New");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Open...");
     IswArgMnemonicKey(&ab, 'o');
+    IswArgLeftImage(&ab, svg_menu_open);
     entry = IswCreateManagedWidget("menuOpen", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Open");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Save");
     IswArgMnemonicKey(&ab, 's');
+    IswArgLeftImage(&ab, svg_menu_save);
     entry = IswCreateManagedWidget("menuSave", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Save");
 
@@ -388,6 +461,7 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     IswArgMnemonicKey(&ab, 'q');
     IswArgAccelerator(&ab, "Ctrl<Key>q");
     IswArgAcceleratorText(&ab, "Ctrl+Q");
+    IswArgLeftImage(&ab, svg_menu_quit);
     entry = IswCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, quit_callback, NULL);
 
@@ -403,12 +477,14 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Undo");
     IswArgMnemonicKey(&ab, 'u');
+    IswArgLeftImage(&ab, svg_menu_undo);
     entry = IswCreateManagedWidget("menuUndo", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Undo");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Redo");
     IswArgMnemonicKey(&ab, 'r');
+    IswArgLeftImage(&ab, svg_menu_redo);
     entry = IswCreateManagedWidget("menuRedo", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Redo");
 
@@ -417,18 +493,21 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Cut");
     IswArgMnemonicKey(&ab, 't');
+    IswArgLeftImage(&ab, svg_menu_cut);
     entry = IswCreateManagedWidget("menuCut", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Cut");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Copy");
     IswArgMnemonicKey(&ab, 'c');
+    IswArgLeftImage(&ab, svg_menu_copy);
     entry = IswCreateManagedWidget("menuCopy", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Copy");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Paste");
     IswArgMnemonicKey(&ab, 'p');
+    IswArgLeftImage(&ab, svg_menu_paste);
     entry = IswCreateManagedWidget("menuPaste", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Paste");
 
@@ -450,6 +529,7 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "About ISW Demo");
+    IswArgLeftImage(&ab, svg_menu_about);
     entry = IswCreateManagedWidget("menuAbout", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"About");
 
@@ -457,11 +537,13 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "ISW Documentation");
+    IswArgLeftImage(&ab, svg_menu_docs);
     entry = IswCreateManagedWidget("menuDocs", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"Documentation");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Report Bug");
+    IswArgLeftImage(&ab, svg_menu_bug);
     entry = IswCreateManagedWidget("menuBug", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"Bug");
 
