@@ -572,17 +572,7 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
         ctx = w->label.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
     }
     
-    (void)event;
     Boolean insensitive = !IswIsSensitive(gw);
-
-    /*
-     * Don't draw shadows if Command is going to redraw them.
-     * The shadow draw method is region aware, but since 99% of
-     * all labels don't have shadows, we'll check for a shadow
-     * before we incur the function call overhead.
-     *
-     * Shadow drawing removed - ThreeD eliminated.
-     */
 
     /*
      * now we'll see if we need to draw the rest of the label
@@ -590,16 +580,15 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
     /* Region handling: IswRegion is the toolkit's client-side damage region
      * (NULL = no region, repaint everything). */
     if (region != NULL) {
-	int x = w->label.label_x;
-	unsigned int width = w->label.label_width;
-	if (w->label.lbm_width) {
-	    if (w->label.label_x > (x = w->label.internal_width))
-		width += w->label.label_x - x;
-	}
-	/* No rectangle-in-region early-out yet; always redraw. */
-	(void)x; (void)width; (void)region; /* suppress warnings */
+	    int x = w->label.label_x;
+	    unsigned int width = w->label.label_width;
+	    if (w->label.lbm_width) {
+	        if (w->label.label_x > (x = w->label.internal_width))
+	    	width += w->label.label_x - x;
+	    }
+	    /* No rectangle-in-region early-out yet; always redraw. */
+	    (void)x; (void)width; (void)region; /* suppress warnings */
     }
-
 
     /* Image rendering path (replaces text/pixmap) */
     if (w->label.image) {
@@ -678,24 +667,23 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
         return;
     }
 
-    {
- int len = w->label.label_len;
- char *label = w->label.label;
- Position y = w->label.label_y;
- IswFontStruct *fs = w->label.font;
+    int len = w->label.label_len;
+    char *label = w->label.label;
+    Position y = w->label.label_y;
+    IswFontStruct *fs = w->label.font;
 
- if (fs == NULL) {
-     /* No font available - skip text rendering */
-     return;
- }
+    if (fs == NULL) {
+        /* No font available - skip text rendering */
+        return;
+    }
 
- int line_height = ISWScaledFontHeight((Widget)w, fs);
- if (len != MULTI_LINE_LABEL) {
-     int cap = ISWScaledFontCapHeight((Widget)w, fs);
-     y = (Position)(((int)w->core.height + cap) / 2);
- } else {
-     y += (Position)ISWScaledFontAscent((Widget)w, fs);
- }
+    int line_height = ISWScaledFontHeight((Widget)w, fs);
+    if (len != MULTI_LINE_LABEL) {
+        int cap = ISWScaledFontCapHeight((Widget)w, fs);
+        y = (Position)(((int)w->core.height + cap) / 2);
+    } else {
+        y += (Position)ISWScaledFontAscent((Widget)w, fs);
+    }
 
 	/* display left image */
 	if (w->label.left_image && w->label.lbm_width != 0) {
@@ -706,122 +694,116 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
 	    const unsigned char *pixels = ISWImageRasterize(w->label.left_image,
 	        lrw_phys, lrh_phys, &rw, &rh);
 	    if (pixels && ctx) {
-		Boolean mono = ISWImageIsMonochrome(w->label.left_image);
-		Pixel mfg = mono ? w->label.foreground : 0;
-		ISWRenderBegin(ctx);
-		/* Retained handle: same upload-once pattern as the full-image
-		   branch above. */
-		if (w->label.lbm_handle_raster != pixels ||
-		    w->label.lbm_handle_w != rw ||
-		    w->label.lbm_handle_h != rh ||
-		    w->label.lbm_handle_fg != mfg ||
-		    w->label.lbm_handle == 0) {
-		    if (w->label.lbm_handle)
-			ISWRenderImageFree(ctx, w->label.lbm_handle);
-		    w->label.lbm_handle = mono
-			? ISWRenderImageUploadMasked(ctx, mfg, pixels, rw, rh)
-			: ISWRenderImageUpload(ctx, pixels, rw, rh);
-		    w->label.lbm_handle_raster = pixels;
-		    w->label.lbm_handle_w = rw;
-		    w->label.lbm_handle_h = rh;
-		    w->label.lbm_handle_fg = mfg;
-		}
-		if (w->label.lbm_handle)
-		    ISWRenderDrawImageHandle(ctx, w->label.lbm_handle,
-					    (int)w->label.internal_width,
-					    (int)w->label.lbm_y,
-					    w->label.lbm_width,
-					    w->label.lbm_height);
-		else if (mono)
-		    ISWRenderDrawImageMasked(ctx, w->label.foreground,
-					    pixels, rw, rh,
-					    (int)w->label.internal_width,
-					    (int)w->label.lbm_y,
-					    w->label.lbm_width,
-					    w->label.lbm_height);
-		else
-		    ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
-					  (int)w->label.internal_width,
-					  (int)w->label.lbm_y,
-					  w->label.lbm_width,
-					  w->label.lbm_height);
-		ISWRenderEnd(ctx);
+            Boolean mono = ISWImageIsMonochrome(w->label.left_image);
+            Pixel mfg = mono ? w->label.foreground : 0;
+            ISWRenderBegin(ctx);
+            /* Retained handle: same upload-once pattern as the full-image
+            branch above. */
+            if (w->label.lbm_handle_raster != pixels ||
+                w->label.lbm_handle_w != rw ||
+                w->label.lbm_handle_h != rh ||
+                w->label.lbm_handle_fg != mfg ||
+                w->label.lbm_handle == 0) {
+                if (w->label.lbm_handle)
+                ISWRenderImageFree(ctx, w->label.lbm_handle);
+                w->label.lbm_handle = mono
+                ? ISWRenderImageUploadMasked(ctx, mfg, pixels, rw, rh)
+                : ISWRenderImageUpload(ctx, pixels, rw, rh);
+                w->label.lbm_handle_raster = pixels;
+                w->label.lbm_handle_w = rw;
+                w->label.lbm_handle_h = rh;
+                w->label.lbm_handle_fg = mfg;
+            }
+            if (w->label.lbm_handle)
+                ISWRenderDrawImageHandle(ctx, w->label.lbm_handle,
+                            (int)w->label.internal_width,
+                            (int)w->label.lbm_y,
+                            w->label.lbm_width,
+                            w->label.lbm_height);
+            else if (mono)
+                ISWRenderDrawImageMasked(ctx, w->label.foreground,
+                            pixels, rw, rh,
+                            (int)w->label.internal_width,
+                            (int)w->label.lbm_y,
+                            w->label.lbm_width,
+                            w->label.lbm_height);
+            else
+                ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                        (int)w->label.internal_width,
+                        (int)w->label.lbm_y,
+                        w->label.lbm_width,
+                        w->label.lbm_height);
+            ISWRenderEnd(ctx);
 	    }
 	}
 
-        {
-            if (ctx) {
-                ISWRenderBegin(ctx);
-                if (insensitive) ISWRenderPushGroup(ctx);
-                DrawBackground(w, ctx);
-                ISWRenderSetFont(ctx, w->label.font);
-                ISWRenderSetColor(ctx, w->label.foreground);
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        if (insensitive) ISWRenderPushGroup(ctx);
+        DrawBackground(w, ctx);
+        ISWRenderSetFont(ctx, w->label.font);
+        ISWRenderSetColor(ctx, w->label.foreground);
 
-                if (len == MULTI_LINE_LABEL) {
-                    char *nl;
-                    while ((nl = index(label, '\n')) != NULL) {
-                        int segment_len = (int)(nl - label);
-                        if (segment_len > 0) {
-                            ISWRenderDrawString(ctx, label, segment_len,
-                                              w->label.label_x, y);
-                        }
-                        y += line_height;
-                        label = nl + 1;
-                    }
-                    int last_len = strlen(label);
-                    if (last_len > 0)
-                        ISWRenderDrawString(ctx, label, last_len,
-                                          w->label.label_x, y);
-                } else if (len > 0) {
-                    const char *draw_str = label;
-                    int draw_len = len;
-                    int draw_x = w->label.label_x;
-                    char ellipsis_buf[1024];
-
-                    if (w->label.ellipsize != IswEllipsizeNone) {
-                        int avail = (int)w->core.width
-                                    - 2 * (int)w->label.internal_width
-                                    - (int)LEFT_OFFSET(w);
-                        if (avail > 0 &&
-                            (int)w->label.label_width > avail) {
-                            draw_len = _EllipsizeText((Widget)w, fs,
-                                label, len, w->label.ellipsize,
-                                avail, ellipsis_buf,
-                                (int)sizeof(ellipsis_buf));
-                            draw_str = ellipsis_buf;
-                            int trunc_w = ISWScaledTextWidth(
-                                (Widget)w, fs, draw_str, draw_len);
-                            Position leftedge =
-                                w->label.internal_width + LEFT_OFFSET(w);
-                            switch (w->label.justify) {
-                            case IswJustifyRight:
-                                draw_x = (int)w->core.width - trunc_w
-                                         - (int)w->label.internal_width;
-                                break;
-                            case IswJustifyCenter:
-                                draw_x = ((int)w->core.width
-                                          - trunc_w) / 2;
-                                break;
-                            default:
-                                draw_x = leftedge;
-                                break;
-                            }
-                            if (draw_x < (int)leftedge)
-                                draw_x = (int)leftedge;
-                        }
-                    }
-                    ISWRenderDrawString(ctx, draw_str, draw_len,
-                                      draw_x, y);
+        if (len == MULTI_LINE_LABEL) {
+            char *nl;
+            while ((nl = index(label, '\n')) != NULL) {
+                int segment_len = (int)(nl - label);
+                if (segment_len > 0) {
+                    ISWRenderDrawString(ctx, label, segment_len,
+                                        w->label.label_x, y);
                 }
-
-                if (insensitive) ISWRenderPopGroupWithAlpha(ctx, 0.4);
-                ISWRenderEnd(ctx);
+                y += line_height;
+                label = nl + 1;
             }
+            int last_len = strlen(label);
+            if (last_len > 0)
+                ISWRenderDrawString(ctx, label, last_len,
+                                    w->label.label_x, y);
+        } else if (len > 0) {
+            const char *draw_str = label;
+            int draw_len = len;
+            int draw_x = w->label.label_x;
+            char ellipsis_buf[1024];
 
-        } /* endif international */
+            if (w->label.ellipsize != IswEllipsizeNone) {
+                int avail = (int)w->core.width
+                            - 2 * (int)w->label.internal_width
+                            - (int)LEFT_OFFSET(w);
+                if (avail > 0 &&
+                    (int)w->label.label_width > avail) {
+                    draw_len = _EllipsizeText((Widget)w, fs,
+                        label, len, w->label.ellipsize,
+                        avail, ellipsis_buf,
+                        (int)sizeof(ellipsis_buf));
+                    draw_str = ellipsis_buf;
+                    int trunc_w = ISWScaledTextWidth(
+                        (Widget)w, fs, draw_str, draw_len);
+                    Position leftedge =
+                        w->label.internal_width + LEFT_OFFSET(w);
+                    switch (w->label.justify) {
+                    case IswJustifyRight:
+                        draw_x = (int)w->core.width - trunc_w
+                                    - (int)w->label.internal_width;
+                        break;
+                    case IswJustifyCenter:
+                        draw_x = ((int)w->core.width
+                                    - trunc_w) / 2;
+                        break;
+                    default:
+                        draw_x = leftedge;
+                        break;
+                    }
+                    if (draw_x < (int)leftedge)
+                        draw_x = (int)leftedge;
+                }
+            }
+            ISWRenderDrawString(ctx, draw_str, draw_len,
+                                draw_x, y);
+        }
 
+        if (insensitive) ISWRenderPopGroupWithAlpha(ctx, 0.4);
+        ISWRenderEnd(ctx);
     }
-
 }
 
 static void
@@ -845,7 +827,8 @@ _Reposition(LabelWidget lw, Dimension width, Dimension height,
     }
 
     if (newPos < (Position)leftedge)
-	newPos = leftedge;
+	    newPos = leftedge;
+    
     *dx = newPos - lw->label.label_x;
     lw->label.label_x = newPos;
 
@@ -886,12 +869,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     Boolean was_resized = False, redisplay = False, checks[NUM_CHECKS];
 
     for (i = 0; i < NUM_CHECKS; i++)
-	checks[i] = FALSE;
+	`checks[i] = FALSE;
+
     for (i = 0; i < *num_args; i++) {
-	if (streq(IswNwidth, args[i].name))
-	    checks[WIDTH] = TRUE;
-	if (streq(IswNheight, args[i].name))
-	    checks[HEIGHT] = TRUE;
+	    if (streq(IswNwidth, args[i].name))
+	        checks[WIDTH] = TRUE;
+	    if (streq(IswNheight, args[i].name))
+	        checks[HEIGHT] = TRUE;
     }
 
     /* Handle image resource changes */
@@ -904,22 +888,24 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	    ISWImageDestroy(newlw->label.image);
 	    newlw->label.image = NULL;
 	}
+
 	/* The old image's raster buffer dies with it; a new image's raster can
 	   reuse the address, so drop the retained handle AND its key now. */
 	if (newlw->label.image_handle && newlw->label.render_ctx)
 	    ISWRenderImageFree(newlw->label.render_ctx,
 			       newlw->label.image_handle);
-	newlw->label.image_handle = 0;
-	newlw->label.image_handle_raster = NULL;
+	    newlw->label.image_handle = 0;
+	    newlw->label.image_handle_raster = NULL;
 	if (newlw->label.image_source)
 	    newlw->label.image = _LabelLoadImage(newlw, newlw->label.image_source);
-	was_resized = True;
+	    was_resized = True;
     }
+
     if (curlw->label.left_image_source != newlw->label.left_image_source) {
-	if (curlw->label.left_image_source)
-	    IswFree(curlw->label.left_image_source);
-	newlw->label.left_image_source = newlw->label.left_image_source
-	    ? IswNewString(newlw->label.left_image_source) : NULL;
+	    if (curlw->label.left_image_source)
+	        IswFree(curlw->label.left_image_source);
+	        newlw->label.left_image_source = newlw->label.left_image_source
+	        ? IswNewString(newlw->label.left_image_source) : NULL;
 	if (newlw->label.left_image) {
 	    ISWImageDestroy(newlw->label.left_image);
 	    newlw->label.left_image = NULL;
@@ -927,30 +913,30 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	/* Same raster-address-reuse hazard as the main image above. */
 	if (newlw->label.lbm_handle && newlw->label.render_ctx)
 	    ISWRenderImageFree(newlw->label.render_ctx,
-			       newlw->label.lbm_handle);
-	newlw->label.lbm_handle = 0;
-	newlw->label.lbm_handle_raster = NULL;
+		    newlw->label.lbm_handle);
+	    newlw->label.lbm_handle = 0;
+	    newlw->label.lbm_handle_raster = NULL;
 	if (newlw->label.left_image_source)
 	    newlw->label.left_image = _LabelLoadImage(newlw, newlw->label.left_image_source);
-	was_resized = True;
+	    was_resized = True;
     }
 
     if (newlw->label.label == NULL)
-	newlw->label.label = (char *)newlw->core.name;
+	    newlw->label.label = (char *)newlw->core.name;
     if (curlw->label.label != newlw->label.label) {
         if (curlw->label.label != curlw->core.name)
-	    IswFree((char *)curlw->label.label);
+	        IswFree((char *)curlw->label.label);
 	if (newlw->label.label != newlw->core.name)
 	    newlw->label.label = IswNewString(newlw->label.label);
-	was_resized = True;
+	        was_resized = True;
     }
 
     if (was_resized ||
 		curlw->label.font != newlw->label.font ||
 		curlw->label.encoding != newlw->label.encoding ||
 		curlw->label.justify != newlw->label.justify) {
-	SetTextWidthAndHeight(newlw);
-	was_resized = True;
+	    SetTextWidthAndHeight(newlw);
+	    was_resized = True;
     }
 
     if (curlw->label.left_image != newlw->label.left_image ||
@@ -978,46 +964,46 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     /* enforce minimum dimensions */
     if (newlw->label.resize) {
-	if (checks[HEIGHT]) {
-	    if (newlw->label.label_height > newlw->label.lbm_height)
-		i = newlw->label.label_height +
-			2 * newlw->label.internal_height;
-	    else
-		i = newlw->label.lbm_height + 2 * newlw->label.internal_height;
-	    if (i > newlw->core.height)
-		newlw->core.height = i;
-	}
-	if (checks[WIDTH]) {
-	    i = newlw->label.label_width + 2 * newlw->label.internal_width +
-			LEFT_OFFSET(newlw);  /* req's label.lbm_width */
-	    if (i > newlw->core.width)
-		newlw->core.width = i;
-	}
+	    if (checks[HEIGHT]) {
+	        if (newlw->label.label_height > newlw->label.lbm_height)
+	    	i = newlw->label.label_height +
+	    		2 * newlw->label.internal_height;
+	        else
+	    	i = newlw->label.lbm_height + 2 * newlw->label.internal_height;
+	        if (i > newlw->core.height)
+	    	newlw->core.height = i;
+	    }
+	    if (checks[WIDTH]) {
+	        i = newlw->label.label_width + 2 * newlw->label.internal_width +
+	    		LEFT_OFFSET(newlw);  /* req's label.lbm_width */
+	        if (i > newlw->core.width)
+	    	newlw->core.width = i;
+	    }
     }
 
     /* XCB Fix: Add NULL checks before comparing font->fid */
     Bool font_changed = False;
     if (curlw->label.font != NULL && newlw->label.font != NULL) {
- font_changed = (curlw->label.font->fid != newlw->label.font->fid);
+        font_changed = (curlw->label.font->fid != newlw->label.font->fid);
     } else if (curlw->label.font != newlw->label.font) {
- /* One is NULL and the other isn't */
- font_changed = True;
+        /* One is NULL and the other isn't */
+        font_changed = True;
     }
 
     if (curlw->core.background_pixel != newlw->core.background_pixel ||
-  curlw->label.foreground != newlw->label.foreground ||
-  font_changed) {
- redisplay = True;
- /* Recolor SVG images if foreground changed */
- if (curlw->label.foreground != newlw->label.foreground) {
-     char fg_hex[8];
-     const char *color = _LabelForegroundHex(newlw, fg_hex, sizeof(fg_hex))
-                         ? fg_hex : NULL;
-     if (newlw->label.image)
-         ISWImageRecolor(newlw->label.image, color);
-     if (newlw->label.left_image)
-         ISWImageRecolor(newlw->label.left_image, color);
- }
+        curlw->label.foreground != newlw->label.foreground ||
+        font_changed) {
+        redisplay = True;
+        /* Recolor SVG images if foreground changed */
+        if (curlw->label.foreground != newlw->label.foreground) {
+            char fg_hex[8];
+            const char *color = _LabelForegroundHex(newlw, fg_hex, sizeof(fg_hex))
+                                ? fg_hex : NULL;
+            if (newlw->label.image)
+                ISWImageRecolor(newlw->label.image, color);
+            if (newlw->label.left_image)
+                ISWImageRecolor(newlw->label.left_image, color);
+        }
     }
 
 
