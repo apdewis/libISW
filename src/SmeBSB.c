@@ -214,28 +214,30 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     else
 	entry->sme_bsb.label = IswNewString( entry->sme_bsb.label );
 
-    /* Load images from string resources */
+    /* Load images from string resources at display DPI (matches Label.c) */
     if (entry->sme_bsb.left_image_source) {
+        float dpi = (float)(96.0 * ISWScaleFactor(new));
         entry->sme_bsb.left_image_source = IswNewString(entry->sme_bsb.left_image_source);
         entry->sme_bsb.left_image = ISWImageLoad(entry->sme_bsb.left_image_source,
-                                                  96.0, NULL);
+                                                  (double)dpi, NULL);
     }
     if (entry->sme_bsb.right_image_source) {
+        float dpi = (float)(96.0 * ISWScaleFactor(new));
         entry->sme_bsb.right_image_source = IswNewString(entry->sme_bsb.right_image_source);
         entry->sme_bsb.right_image = ISWImageLoad(entry->sme_bsb.right_image_source,
-                                                   96.0, NULL);
+                                                   (double)dpi, NULL);
     }
     if (entry->sme_bsb.left_image) {
-        float tmp_w = ISWImageGetWidth(entry->sme_bsb.left_image);
-        float tmp_h = ISWImageGetHeight(entry->sme_bsb.left_image);
-        entry->sme_bsb.left_image_width  = (Dimension)tmp_w;
-        entry->sme_bsb.left_image_height = (Dimension)tmp_h;
+        float sf = ISWImageIsVector(entry->sme_bsb.left_image)
+                       ? (float)ISWScaleFactor(new) : 1.0f;
+        entry->sme_bsb.left_image_width  = (Dimension)(ISWImageGetWidth(entry->sme_bsb.left_image)  / sf + 0.5f);
+        entry->sme_bsb.left_image_height = (Dimension)(ISWImageGetHeight(entry->sme_bsb.left_image) / sf + 0.5f);
     }
     if (entry->sme_bsb.right_image) {
-        float tmp_w = ISWImageGetWidth(entry->sme_bsb.right_image);
-        float tmp_h = ISWImageGetHeight(entry->sme_bsb.right_image);
-        entry->sme_bsb.right_image_width  = (Dimension)tmp_w;
-        entry->sme_bsb.right_image_height = (Dimension)tmp_h;
+        float sf = ISWImageIsVector(entry->sme_bsb.right_image)
+                       ? (float)ISWScaleFactor(new) : 1.0f;
+        entry->sme_bsb.right_image_width  = (Dimension)(ISWImageGetWidth(entry->sme_bsb.right_image)  / sf + 0.5f);
+        entry->sme_bsb.right_image_height = (Dimension)(ISWImageGetHeight(entry->sme_bsb.right_image) / sf + 0.5f);
     }
 
     if (entry->sme_bsb.accelerator)
@@ -536,7 +538,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
         entry->sme_bsb.left_image_source = entry->sme_bsb.left_image_source
             ? IswNewString(entry->sme_bsb.left_image_source) : NULL;
         entry->sme_bsb.left_image = entry->sme_bsb.left_image_source
-            ? ISWImageLoad(entry->sme_bsb.left_image_source, 96.0, NULL) : NULL;
+            ? ISWImageLoad(entry->sme_bsb.left_image_source,
+                          (double)(96.0 * ISWScaleFactor(new)), NULL) : NULL;
         GetImageInfo(new, TRUE);
         ret_val = TRUE;
     }
@@ -552,7 +555,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
         entry->sme_bsb.right_image_source = entry->sme_bsb.right_image_source
             ? IswNewString(entry->sme_bsb.right_image_source) : NULL;
         entry->sme_bsb.right_image = entry->sme_bsb.right_image_source
-            ? ISWImageLoad(entry->sme_bsb.right_image_source, 96.0, NULL) : NULL;
+            ? ISWImageLoad(entry->sme_bsb.right_image_source,
+                           (double)(96.0 * ISWScaleFactor(new)), NULL) : NULL;
         GetImageInfo(new, FALSE);
         ret_val = TRUE;
     }
@@ -795,20 +799,20 @@ GetImageInfo(Widget w, Boolean is_left)
 
     if (is_left) {
         if (entry->sme_bsb.left_image) {
-            float tmp_w = ISWImageGetWidth(entry->sme_bsb.left_image);
-            float tmp_h = ISWImageGetHeight(entry->sme_bsb.left_image);
-            entry->sme_bsb.left_image_width  = (Dimension)tmp_w;
-            entry->sme_bsb.left_image_height = (Dimension)tmp_h;
+            float sf = ISWImageIsVector(entry->sme_bsb.left_image)
+                           ? (float)ISWScaleFactor(w) : 1.0f;
+            entry->sme_bsb.left_image_width  = (Dimension)(ISWImageGetWidth(entry->sme_bsb.left_image)  / sf + 0.5f);
+            entry->sme_bsb.left_image_height = (Dimension)(ISWImageGetHeight(entry->sme_bsb.left_image) / sf + 0.5f);
         } else {
             entry->sme_bsb.left_image_width  = 0;
             entry->sme_bsb.left_image_height = 0;
         }
     } else {
         if (entry->sme_bsb.right_image) {
-            float tmp_w = ISWImageGetWidth(entry->sme_bsb.right_image);
-            float tmp_h = ISWImageGetHeight(entry->sme_bsb.right_image);
-            entry->sme_bsb.right_image_width  = (Dimension)tmp_w;
-            entry->sme_bsb.right_image_height = (Dimension)tmp_h;
+            float sf = ISWImageIsVector(entry->sme_bsb.right_image)
+                           ? (float)ISWScaleFactor(w) : 1.0f;
+            entry->sme_bsb.right_image_width  = (Dimension)(ISWImageGetWidth(entry->sme_bsb.right_image)  / sf + 0.5f);
+            entry->sme_bsb.right_image_height = (Dimension)(ISWImageGetHeight(entry->sme_bsb.right_image) / sf + 0.5f);
         } else {
             entry->sme_bsb.right_image_width  = 0;
             entry->sme_bsb.right_image_height = 0;
