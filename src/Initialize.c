@@ -178,17 +178,16 @@ asm(".section .trampoline, \"dwx\" \n\
  .globl _IswInherit        \n\
  _IswInherit:              \n\
     jmp *_y(%rip)         \n\
-_y: .quad __XtInherit     \n\
+_y: .quad __IswInherit     \n\
     .text                 \n");
 #else
 asm(".data\n\
- .globl __XtInherit        \n\
- __XtInherit:      jmp *_y \n\
-  _y: .long ___XtInherit   \n\
+ .globl __IswInherit        \n\
+ __IswInherit:      jmp *_y \n\
+  _y: .long ___IswInherit   \n\
     .text                 \n");
 #endif
 
-#define _IswInherit __XtInherit
 #endif
 
 void

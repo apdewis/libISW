@@ -176,10 +176,11 @@ IswPopdown(Widget widget)
                       NULL, NULL);
     }
 
-#ifndef X_NO_XT_POPDOWN_CONFORMANCE
+    //#TODO remove ifndef gaurd if/when shown to no longer be necessary
+//#ifndef X_NO_XT_POPDOWN_CONFORMANCE
     if (!shell_widget->shell.popped_up)
         return;
-#endif
+//#endif
 
     grab_kind = shell_widget->shell.grab_kind;
     _IswPlatformUnmapWindow(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));

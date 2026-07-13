@@ -79,7 +79,7 @@ typedef char *String;
  */
 #define _IswString char*
 
-/* _Xt names are private to Xt implementation, do not use in client code */
+/* _Isw names are private to Xt implementation, do not use in client code */
 #if NeedWidePrototypes
 #define _IswBoolean	int
 #define _IswDimension	unsigned int

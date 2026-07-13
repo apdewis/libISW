@@ -355,7 +355,7 @@ OrderEvents(_Xconst void *a, _Xconst void *b)
 }
 
 static void
-Compile_XtEventTable(EventKeys table, Cardinal count)
+CompileIswEventTable(EventKeys table, Cardinal count)
 {
     register int i;
     register EventKeys entry = table;
@@ -373,7 +373,7 @@ OrderModifiers(_Xconst void *a, _Xconst void *b)
 }
 
 static void
-Compile_XtModifierTable(ModifierKeys table, Cardinal count)
+CompileIswModifierTable(ModifierKeys table, Cardinal count)
 {
     register int i;
     register ModifierKeys entry = table;
@@ -2066,8 +2066,8 @@ _IswTranslateInitialize(void)
     QNone = IswPermStringToQuark("None");
     QAny = IswPermStringToQuark("Any");
 
-    Compile_XtEventTable(events, IswNumber(events));
-    Compile_XtModifierTable(modifiers, IswNumber(modifiers));
+    CompileIswEventTable(events, IswNumber(events));
+    CompileIswModifierTable(modifiers, IswNumber(modifiers));
     CompileNameValueTable(notifyModes);
     CompileNameValueTable(motionDetails);
 }
