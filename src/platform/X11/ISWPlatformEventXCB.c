@@ -465,7 +465,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         xcb_selection_clear_event_t *e = (xcb_selection_clear_event_t *) xev;
         out->kind = IswProtocol;
         out->any.target = target_for_window(dpy, e->owner);
-        out->any.native = __XtMalloc(32);
+        out->any.native = __IswMalloc(32);
         memcpy(out->any.native, xev, 32);
         return True;
     }
@@ -473,7 +473,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         xcb_selection_request_event_t *e = (xcb_selection_request_event_t *) xev;
         out->kind = IswProtocol;
         out->any.target = target_for_window(dpy, e->owner);
-        out->any.native = __XtMalloc(32);
+        out->any.native = __IswMalloc(32);
         memcpy(out->any.native, xev, 32);
         return True;
     }
@@ -481,7 +481,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         xcb_selection_notify_event_t *e = (xcb_selection_notify_event_t *) xev;
         out->kind = IswProtocol;
         out->any.target = target_for_window(dpy, e->requestor);
-        out->any.native = __XtMalloc(32);
+        out->any.native = __IswMalloc(32);
         memcpy(out->any.native, xev, 32);
         return True;
     }
@@ -489,7 +489,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         xcb_property_notify_event_t *e = (xcb_property_notify_event_t *) xev;
         out->kind = IswProtocol;
         out->any.target = target_for_window(dpy, e->window);
-        out->any.native = __XtMalloc(32);
+        out->any.native = __IswMalloc(32);
         memcpy(out->any.native, xev, 32);
         return True;
     }

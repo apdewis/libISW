@@ -671,7 +671,7 @@ _IswPrintXlations(Widget w,
     if (xlations == NULL)
         return NULL;
 
-    sb->current = sb->start = __XtMalloc((Cardinal) 1000);
+    sb->current = sb->start = __IswMalloc((Cardinal) 1000);
     sb->max = 1000;
     maxPrints = 0;
     for (i = 0; i < xlations->numStateTrees; i++)
@@ -771,7 +771,7 @@ _IswDisplayInstalledAccelerators(Widget widget,
     if (bindData->simple.isComplex == False)
         return;
 
-    sb->current = sb->start = __XtMalloc((Cardinal) 1000);
+    sb->current = sb->start = __IswMalloc((Cardinal) 1000);
     sb->start[0] = '\0';
     sb->max = 1000;
     maxPrints = 0;
@@ -813,7 +813,7 @@ _IswPrintActions(register ActionRec *actions, IswQuark *quarkTbl)
     TMStringBufRec sbRec, *sb = &sbRec;
 
     sb->max = 1000;
-    sb->current = sb->start = __XtMalloc((Cardinal) 1000);
+    sb->current = sb->start = __IswMalloc((Cardinal) 1000);
     PrintActions(sb, actions, quarkTbl, (Widget) NULL);
     return sb->start;
 }
@@ -823,7 +823,7 @@ _IswPrintState(TMStateTree stateTree, TMBranchHead branchHead)
 {
     TMStringBufRec sbRec, *sb = &sbRec;
 
-    sb->current = sb->start = __XtMalloc((Cardinal) 1000);
+    sb->current = sb->start = __IswMalloc((Cardinal) 1000);
     sb->max = 1000;
     PrintState(sb, stateTree, branchHead,
                True, (Widget) NULL, (IswDisplay) NULL);
@@ -840,7 +840,7 @@ _IswPrintEventSeq(register EventSeqPtr eventSeq, IswDisplay dpy)
     TMShortCard i, j;
     Boolean cycle = False;
 
-    sb->current = sb->start = __XtMalloc((Cardinal) 1000);
+    sb->current = sb->start = __IswMalloc((Cardinal) 1000);
     sb->max = 1000;
     for (i = 0;
          i < MAXSEQS && eventSeq != NULL && !cycle;

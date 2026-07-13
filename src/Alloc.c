@@ -253,7 +253,7 @@ IswFree(const void *ptr)
 }
 
 char *
-__XtMalloc(unsigned size)
+__IswMalloc(unsigned size)
 {
 #ifdef MALLOC_0_RETURNS_NULL
     if (!size)
@@ -263,7 +263,7 @@ __XtMalloc(unsigned size)
 }
 
 char *
-__XtCalloc(unsigned num, unsigned size)
+__IswCalloc(unsigned num, unsigned size)
 {
 #ifdef MALLOC_0_RETURNS_NULL
     if (!size)

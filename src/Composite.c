@@ -168,7 +168,7 @@ InheritAllowsChangeManagedSet(WidgetClass widget_class)
         CompositeClassExtension new_ext;
 
         new_ext = (CompositeClassExtension)
-            __XtCalloc(1, sizeof(CompositeClassExtensionRec));
+            __IswCalloc(1, sizeof(CompositeClassExtensionRec));
 
         /* Be careful to inherit only what is appropriate */
         new_ext->next_extension = cc->composite_class.extension;

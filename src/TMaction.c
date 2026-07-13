@@ -453,7 +453,7 @@ EnterBindCache(Widget w,
     }
     if (*bindCachePtr == NULL) {
         *bindCachePtr = bindCache = (TMBindCache)
-            __XtMalloc((Cardinal) (sizeof(TMBindCacheRec) +
+            __IswMalloc((Cardinal) (sizeof(TMBindCacheRec) +
                                    (size_t) (procsSize -
                                              sizeof(IswActionProc))));
         bindCache->next = NULL;

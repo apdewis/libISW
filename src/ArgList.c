@@ -62,7 +62,7 @@ IswMergeArgLists(ArgList args1,
 {
     ArgList result, args;
 
-    result = (ArgList) __XtCalloc((unsigned) num_args1 + num_args2,
+    result = (ArgList) __IswCalloc((unsigned) num_args1 + num_args2,
                                   (unsigned) sizeof(Arg));
 
     for (args = result; num_args1 != 0; num_args1--)

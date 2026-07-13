@@ -1105,8 +1105,8 @@ IswFindFile(_Xconst _IswString path,
     int len;
     Boolean firstTime = TRUE;
 
-    buf1 = __XtMalloc((unsigned) PATH_MAX);
-    buf2 = __XtMalloc((unsigned) PATH_MAX);
+    buf1 = __IswMalloc((unsigned) PATH_MAX);
+    buf2 = __IswMalloc((unsigned) PATH_MAX);
     buf = buf1;
 
     if (predicate == NULL)
@@ -1419,7 +1419,7 @@ IswResolvePathname(IswDisplay dpy,
             char *new;
 
             bytesAllocd += 1000;
-            new = __XtMalloc((Cardinal) bytesAllocd);
+            new = __IswMalloc((Cardinal) bytesAllocd);
             strncpy(new, massagedPath, (size_t) bytesUsed);
             ch = new + bytesUsed;
             if (pathMallocd)

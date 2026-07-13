@@ -159,7 +159,7 @@ CreateGrab(Widget widget,
 
     if (cursor)
         need_ext = True;
-    grab = (IswServerGrabPtr) __XtMalloc(sizeof(IswServerGrabRec) +
+    grab = (IswServerGrabPtr) __IswMalloc(sizeof(IswServerGrabRec) +
                                         (need_ext ? sizeof(IswServerGrabExtRec)
                                          : 0));
     grab->next = NULL;

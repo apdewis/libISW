@@ -237,7 +237,7 @@ InheritObjectExtensionMethods(WidgetClass widget_class)
     else if (super_ext) {
         /* Be careful to inherit only what is appropriate */
         ext = (ObjectClassExtension)
-            __XtCalloc(1, sizeof(ObjectClassExtensionRec));
+            __IswCalloc(1, sizeof(ObjectClassExtensionRec));
         ext->next_extension = oc->object_class.extension;
         ext->record_type = ISW_NULLQUARK;
         ext->version = IswObjectExtensionVersion;

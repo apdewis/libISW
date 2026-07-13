@@ -109,7 +109,7 @@ _IswSetDefaultConverterTable(ConverterTable *table)
     globalConverterTable = _IswGetProcessContext()->globalConverterTable;
 
     *table = (ConverterTable)
-        __XtCalloc(CONVERTHASHSIZE, (unsigned) sizeof(ConverterPtr));
+        __IswCalloc(CONVERTHASHSIZE, (unsigned) sizeof(ConverterPtr));
     
     _IswAddDefaultConverters(*table);
 
@@ -211,7 +211,7 @@ _IswTableAddConverter(ConverterTable table,
         IswFree((char *) p);
     }
 
-    p = (ConverterPtr) __XtMalloc((Cardinal) (sizeof(ConverterRec) +
+    p = (ConverterPtr) __IswMalloc((Cardinal) (sizeof(ConverterRec) +
                                               sizeof(IswConvertArgRec) *
                                               num_args));
     p->next = *pp;
@@ -260,7 +260,7 @@ IswSetTypeConverter(register _Xconst char *from_type,
 
     if (!process->globalConverterTable) {
         process->globalConverterTable = (ConverterTable)
-            __XtCalloc(CONVERTHASHSIZE, (unsigned) sizeof(ConverterPtr));
+            __IswCalloc(CONVERTHASHSIZE, (unsigned) sizeof(ConverterPtr));
     }
     _IswTableAddConverter(process->globalConverterTable, from, to,
                          converter, convert_args,
@@ -313,7 +313,7 @@ IswAddConverter(register _Xconst char *from_type,
 
     if (!process->globalConverterTable) {
         process->globalConverterTable = (ConverterTable)
-            __XtCalloc(CONVERTHASHSIZE, (unsigned) sizeof(ConverterPtr));
+            __IswCalloc(CONVERTHASHSIZE, (unsigned) sizeof(ConverterPtr));
     }
     _IswTableAddConverter(process->globalConverterTable, from, to,
                          (IswTypeConverter) converter, convert_args, num_args,

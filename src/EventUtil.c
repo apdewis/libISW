@@ -117,7 +117,7 @@ _IswGetPerWidgetInput(Widget widget, _IswBoolean create)
     HASH_FIND_PTR(pd->PerWidgetContext, &widget, pwi);
     if (pwi == NULL && create) {
         pwi = (IswPerWidgetInput)
-            __XtMalloc((unsigned) sizeof(IswPerWidgetInputRec));
+            __IswMalloc((unsigned) sizeof(IswPerWidgetInputRec));
 
         pwi->id = widget;
         pwi->focusKid = NULL;

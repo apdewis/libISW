@@ -130,7 +130,7 @@ _IswAddCallback(InternalCallbackList *callbacks,
     if (icl && icl->call_state) {
         icl->call_state |= _IswCBFreeAfterCalling;
         icl = (InternalCallbackList)
-            __XtMalloc((Cardinal) (sizeof(InternalCallbackRec) +
+            __IswMalloc((Cardinal) (sizeof(InternalCallbackRec) +
                                    sizeof(IswCallbackRec) * (size_t) (count +
                                                                      1)));
         (void) memmove((char *) ToList(icl), (char *) ToList(*callbacks),
@@ -219,7 +219,7 @@ AddCallbacks(Widget widget _X_UNUSED,
     if (icl && icl->call_state) {
         icl->call_state |= _IswCBFreeAfterCalling;
         icl = (InternalCallbackList)
-            __XtMalloc((Cardinal)
+            __IswMalloc((Cardinal)
                        (sizeof(InternalCallbackRec) +
                         sizeof(IswCallbackRec) * (size_t) (i + j)));
         (void) memmove((char *) ToList(*callbacks), (char *) ToList(icl),
@@ -301,7 +301,7 @@ _IswRemoveCallback(InternalCallbackList *callbacks,
                     j = icl->count - i - 1;
                     ocl = ToList(icl);
                     icl = (InternalCallbackList)
-                        __XtMalloc((Cardinal) (sizeof(InternalCallbackRec) +
+                        __IswMalloc((Cardinal) (sizeof(InternalCallbackRec) +
                                                sizeof(IswCallbackRec) *
                                                (size_t) (i + j)));
                     icl->count = (unsigned short) (i + j);
@@ -411,7 +411,7 @@ IswRemoveCallbacks(Widget widget,
         icl->call_state |= _IswCBFreeAfterCalling;
         icl =
             (InternalCallbackList)
-            __XtMalloc((Cardinal)
+            __IswMalloc((Cardinal)
                        (sizeof(InternalCallbackRec) +
                         sizeof(IswCallbackRec) * (size_t) i));
         icl->count = (unsigned short) i;
@@ -516,7 +516,7 @@ _IswCompileCallbackList(IswCallbackList xtcallbacks)
 
     callbacks =
         (InternalCallbackList)
-        __XtMalloc((Cardinal)
+        __IswMalloc((Cardinal)
                    (sizeof(InternalCallbackRec) +
                     sizeof(IswCallbackRec) * (size_t) n));
     callbacks->count = (unsigned short) n;
@@ -549,7 +549,7 @@ _IswGetCallbackList(InternalCallbackList *callbacks)
         icl->call_state |= _IswCBFreeAfterCalling;
         ocl = ToList(icl);
         icl = (InternalCallbackList)
-            __XtMalloc((Cardinal)
+            __IswMalloc((Cardinal)
                        (sizeof(InternalCallbackRec) +
                         sizeof(IswCallbackRec) * (size_t) (i + 1)));
         icl->count = (unsigned short) i;

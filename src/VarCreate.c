@@ -277,7 +277,7 @@ _IswVaOpenApplication(IswAppContext *app_context_return,
     dpy = _IswAppInit(&app_con, (String) application_class, options, num_options,
                      argc_in_out, &argv_in_out, fallback_resources);
 
-    typed_args = (IswTypedArgList) __XtMalloc((unsigned) sizeof(IswTypedArg));
+    typed_args = (IswTypedArgList) __IswMalloc((unsigned) sizeof(IswTypedArg));
     attr = va_arg(var_args, String);
     for (; attr != NULL; attr = va_arg(var_args, String)) {
         if (strcmp(attr, IswVaTypedArg) == 0) {

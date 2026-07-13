@@ -235,7 +235,7 @@ InitPerDisplay(IswDisplay dpy,
     pd->pdi.buttonsDown = 0;
     pd->pdi.xdndDragActive = False;
 
-    pd->per_screen_db = (IswDatabaseHandle *) __XtCalloc(
+    pd->per_screen_db = (IswDatabaseHandle *) __IswCalloc(
         (Cardinal) ops->display->screen_count(dpy),
         (Cardinal) sizeof(IswDatabaseHandle ));
     pd->cmd_db = (IswDatabaseHandle ) NULL;
@@ -339,7 +339,7 @@ IswOpenDisplay(IswAppContext app,
         if (!displayName) displayName = getenv("DISPLAY");
         if (!displayName) displayName = "";
         len = (int) strlen(displayName);
-        app->display_name_tried = (_IswString) __XtMalloc((Cardinal) (len + 1));
+        app->display_name_tried = (_IswString) __IswMalloc((Cardinal) (len + 1));
         strncpy((char *) app->display_name_tried, displayName,
                 (size_t) (len + 1));
         app->display_name_tried[len] = '\0';

@@ -299,7 +299,7 @@ xtWidgetAlloc(WidgetClass widget_class,
                                         & ~(sizeof(double) - 1));
             }
         }
-        widget = (Widget) __XtCalloc(1, (unsigned) (wsize + csize));
+        widget = (Widget) __IswCalloc(1, (unsigned) (wsize + csize));
         widget->core.constraints =
             (csize ? (IswPointer) ((char *) widget + wsize) : NULL);
     }

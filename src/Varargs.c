@@ -136,7 +136,7 @@ _IswVaCreateTypedArgList(va_list var, register int count)
     IswTypedArgList avlist;
 
     avlist = (IswTypedArgList)
-        __XtCalloc((Cardinal) count + 1, (unsigned) sizeof(IswTypedArg));
+        __IswCalloc((Cardinal) count + 1, (unsigned) sizeof(IswTypedArg));
 
     for (attr = va_arg(var, String), count = 0; attr != NULL;
          attr = va_arg(var, String)) {
@@ -243,7 +243,7 @@ TypedArgToArg(Widget widget,
         else if (to_val.size == sizeof(IswArgVal))
             arg_return->value = *(IswArgVal *) to_val.addr;
         else if (to_val.size > sizeof(IswArgVal)) {
-            arg_return->value = (IswArgVal) (void *) __XtMalloc(to_val.size);
+            arg_return->value = (IswArgVal) (void *) __IswMalloc(to_val.size);
             if ((memory_return->value = arg_return->value) != 0)
                 memcpy((void *) arg_return->value, to_val.addr, to_val.size);
         }
@@ -356,7 +356,7 @@ _IswVaToArgList(Widget widget,
     if (max_count  == 0)
 	return;
 
-    args = (ArgList)__XtCalloc((Cardinal)(max_count * 2),  sizeof(Arg));
+    args = (ArgList)__IswCalloc((Cardinal)(max_count * 2),  sizeof(Arg));
     if (!args)
 	return;
 
@@ -490,7 +490,7 @@ _IswVaToTypedArgList(va_list var,
 	return;
 
     args = (IswTypedArgList)
-        __XtCalloc((Cardinal) max_count , sizeof(IswTypedArg));
+        __IswCalloc((Cardinal) max_count , sizeof(IswTypedArg));
     if (!args)
     	return;	    
 

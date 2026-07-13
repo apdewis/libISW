@@ -1387,7 +1387,7 @@ _IswCreateXlations(TMStateTree *stateTrees,
     TMShortCard i;
 
     xlations = (IswTranslations)
-        __XtMalloc((Cardinal) (sizeof(TranslationData) +
+        __IswMalloc((Cardinal) (sizeof(TranslationData) +
                                (size_t) (numStateTrees -
                                          1) * sizeof(TMStateTree)));
 #ifdef TRACE_TM
@@ -1882,7 +1882,7 @@ MakeBindData(TMComplexBindProcs bindings,
                   sizeof(TMSimpleBindProcsRec)));
 
     bindData =
-        (TMBindData) __XtCalloc((Cardinal) sizeof(char), (Cardinal) bytes);
+        (TMBindData) __IswCalloc((Cardinal) sizeof(char), (Cardinal) bytes);
     IswSetBit(bindData->simple.isComplex, isComplex);
     if (isComplex) {
         TMComplexBindData cBindData = (TMComplexBindData) bindData;
@@ -2084,7 +2084,7 @@ _IswGetTranslationValue(Widget w)
         Cardinal numBindings = xlations->numStateTrees;
 
         (*aXlationsPtr) = aXlations = (ATranslations)
-            __XtMalloc((Cardinal) (sizeof(ATranslationData) +
+            __IswMalloc((Cardinal) (sizeof(ATranslationData) +
                                    (numBindings -
                                     1) * sizeof(TMComplexBindProcsRec)));
 

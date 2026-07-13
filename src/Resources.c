@@ -828,7 +828,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
 
                     if (rx->xrm_size > sizeof(IswArgVal)) {
                         arg->value =
-                            (IswArgVal) (void *) __XtMalloc(rx->xrm_size);
+                            (IswArgVal) (void *) __IswMalloc(rx->xrm_size);
                         arg->size = -(arg->size);
                     }
                     else {      /* will fit - copy directly into value field */

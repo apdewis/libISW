@@ -164,7 +164,7 @@ GetPropList(IswDisplay dpy)
 
         IswPerDisplay pd = _IswGetPerDisplay(dpy);
 
-        sarray = (PropList) __XtMalloc((unsigned) sizeof(PropListRec));
+        sarray = (PropList) __IswMalloc((unsigned) sizeof(PropListRec));
         sarray->dpy = dpy;
         for(uint8_t i = 0; i < 4; i++) {
             ids[i] = _IswPlatformSelectionInternName(dpy, names[i], False);
@@ -176,7 +176,7 @@ GetPropList(IswDisplay dpy)
         sarray->id_list_type = _IswPlatformSelectionStdType(dpy, ISW_SEL_STDTYPE_ID_LIST);
         sarray->propCount = 1;
         sarray->list =
-            (SelectionProp) __XtMalloc((unsigned) sizeof(SelectionPropRec));
+            (SelectionProp) __IswMalloc((unsigned) sizeof(SelectionPropRec));
         sarray->list[0].prop = ids[3];
         sarray->list[0].avail = TRUE;
         (void) IswSaveContext(dpy,
@@ -752,7 +752,7 @@ GetConversion(Select ctx,       /* logical owner */
     req->requestor = requestor;
 
     if (timestamp_target) {
-        value = __XtMalloc(sizeof(long));
+        value = __IswMalloc(sizeof(long));
         *(long *) value = (long) ctx->time;
         targetType = _IswPlatformSelectionInternName(ctx->dpy, "INTEGER", False);
         length = 1;
@@ -1228,7 +1228,7 @@ HandleGetIncrement(Widget widget,
            which is not free()-compatible with the backend's malloc'd payload. */
         if (propr.value && length > 0) {
             size_t nbytes = (size_t) BYTELENGTH(length, propr.format);
-            value = __XtMalloc((Cardinal) nbytes);
+            value = __IswMalloc((Cardinal) nbytes);
             memcpy(value, propr.value, nbytes);
         } else {
             value = NULL;
@@ -1260,7 +1260,7 @@ HandleGetIncrement(Widget widget,
         if (info->incremental[n]) {
 #ifdef ISW_COPY_SELECTION
             int size = (int) BYTELENGTH(length, info->format) + 1;
-            char *tmp = __XtMalloc((Cardinal) size);
+            char *tmp = __IswMalloc((Cardinal) size);
 
             (void) memcpy(tmp, value, (size_t) size);
             IswFree(value);
@@ -1355,7 +1355,7 @@ HandleNormal(IswDisplay dpy,
     length = propr.num_items;
     if (propr.value && length > 0) {
         size_t nbytes = (size_t) BYTELENGTH(length, format);
-        value = (unsigned char *) __XtMalloc((Cardinal) nbytes);
+        value = (unsigned char *) __IswMalloc((Cardinal) nbytes);
         memcpy(value, propr.value, nbytes);
     }
     _IswPlatformFreeProperty(&propr);
@@ -1371,7 +1371,7 @@ HandleNormal(IswDisplay dpy,
             ninfo = MakeInfo(info->ctx, &info->callbacks[number],
                              &info->req_closure[number], 1, widget,
                              info->time, &info->incremental[number], &property);
-            ninfo->target = (IswSelectionId *) __XtMalloc((unsigned) sizeof(IswSelectionId));
+            ninfo->target = (IswSelectionId *) __IswMalloc((unsigned) sizeof(IswSelectionId));
             *ninfo->target = info->target[number + 1];
             info = ninfo;
         }
@@ -1383,7 +1383,7 @@ HandleNormal(IswDisplay dpy,
 #ifdef ISW_COPY_SELECTION
     if (value) {                /* it could have been deleted after the SelectionNotify */
         int size = (int) BYTELENGTH(length, format) + 1;
-        char *tmp = __XtMalloc((Cardinal) size);
+        char *tmp = __IswMalloc((Cardinal) size);
 
         (void) memcpy(tmp, value, (size_t) size);
         IswFree(value);
@@ -1395,7 +1395,7 @@ HandleNormal(IswDisplay dpy,
 
     if (info->incremental[number]) {
         /* let requestor know the whole thing has been received */
-        value = (unsigned char *) __XtMalloc((unsigned) 1);
+        value = (unsigned char *) __IswMalloc((unsigned) 1);
         length = 0;
         (*info->callbacks[number]) (widget, closure, &selection,
                                     &type, (IswPointer) value, &length, &format);
@@ -1421,7 +1421,7 @@ HandleIncremental(IswDisplay dpy,
     if (info->incremental[info->current])       /* requestor wants incremental too */
         info->value = NULL;     /* so no need for buffer to assemble value */
     else
-        info->value = (char *) __XtMalloc((unsigned) info->bytelength);
+        info->value = (char *) __IswMalloc((unsigned) info->bytelength);
     info->offset = 0;
 
     /* reset the timer */
@@ -1535,7 +1535,7 @@ GetSelectionValue(Widget widget,
 
         info = MakeInfo(ctx, &callback, &closure, 1, widget,
                         time, &incremental, properties);
-        info->target = (IswSelectionId *) __XtMalloc((unsigned) sizeof(IswSelectionId));
+        info->target = (IswSelectionId *) __IswMalloc((unsigned) sizeof(IswSelectionId));
         *(info->target) = target;
         RequestSelectionValue(info, selection, target);
     }
@@ -1831,7 +1831,7 @@ AddSelectionRequests(Widget wid,
                              (Cardinal) sizeof(QueuedRequest));
         while (i < count) {
             QueuedRequest newreq = (QueuedRequest)
-                __XtMalloc(sizeof(QueuedRequestRec));
+                __IswMalloc(sizeof(QueuedRequestRec));
 
             newreq->selection = sel;
             newreq->target = targets[i];
@@ -1957,12 +1957,12 @@ IswCreateSelectionRequest(Widget widget, IswSelectionId selection)
     else {
         /* Create it */
         queueInfo =
-            (QueuedRequestInfo) __XtMalloc(sizeof(QueuedRequestInfoRec));
+            (QueuedRequestInfo) __IswMalloc(sizeof(QueuedRequestInfoRec));
         queueInfo->count = 0;
         queueInfo->selections = IswMallocArray(2, (Cardinal) sizeof(IswSelectionId));
         queueInfo->selections[0] = ISW_SELECTION_NONE;
         queueInfo->requests = (QueuedRequest *)
-            __XtMalloc(sizeof(QueuedRequest));
+            __IswMalloc(sizeof(QueuedRequest));
     }
 
     /* Append this selection to list */
@@ -2162,7 +2162,7 @@ IswGetSelectionParameters(Widget owner,
 #ifdef ISW_COPY_SELECTION
         if (*value_return) {
             int size = (int) BYTELENGTH(*length_return, *format_return) + 1;
-            char *tmp = __XtMalloc((Cardinal) size);
+            char *tmp = __IswMalloc((Cardinal) size);
 
             (void) memcpy(tmp, *value_return, (size_t) size);
             IswFree(*value_return);
@@ -2192,7 +2192,7 @@ AddParamInfo(Widget w, IswSelectionId selection, IswSelectionId param_id)
 
     if (IswFindContext(IswDisplayOf(w), window_id, paramPropertyContext,
                      (void *) &pinfo)) {
-        pinfo = (ParamInfo) __XtMalloc(sizeof(ParamInfoRec));
+        pinfo = (ParamInfo) __IswMalloc(sizeof(ParamInfoRec));
         pinfo->count = 1;
         pinfo->paramlist = IswNew(ParamRec);
         p = pinfo->paramlist;

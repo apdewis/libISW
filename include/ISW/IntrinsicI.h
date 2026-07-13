@@ -227,18 +227,18 @@ extern void _IswGeoTrace (
 
 #ifndef XTTRACEMEMORY
 
-extern char* __XtMalloc (
+extern char* __IswMalloc (
     unsigned	/* size */
 );
-extern char* __XtCalloc (
+extern char* __IswCalloc (
     unsigned	/* num */,
     unsigned	/* size */
 );
 
 #else
 
-#define __XtMalloc IswMalloc
-#define __XtCalloc IswCalloc
+#define __IswMalloc IswMalloc
+#define __IswCalloc IswCalloc
 #endif
 
 _XFUNCPROTOEND

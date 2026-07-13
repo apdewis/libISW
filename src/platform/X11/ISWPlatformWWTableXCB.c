@@ -169,7 +169,7 @@ ExpandWWTable(register WWTable tab)
         tab->rehash = tab->mask - 2;
     }
     entries = tab->entries =
-        (Widget *) __XtCalloc(tab->mask + 1, sizeof(Widget));
+        (Widget *) __IswCalloc(tab->mask + 1, sizeof(Widget));
     for (oldidx = 0; oldidx <= oldmask; oldidx++) {
         if ((entry = oldentries[oldidx]) && entry != &WWfake) {
             newidx = (Cardinal) WWHASH(tab, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(entry)), (Widget)(entry))));
@@ -287,10 +287,10 @@ _IswXcbAllocWWTable(IswDisplay display)
 {
     register WWTable tab;
 
-    tab = (WWTable) __XtMalloc(sizeof(struct _WWTable));
+    tab = (WWTable) __IswMalloc(sizeof(struct _WWTable));
     tab->mask = 0x7f;
     tab->rehash = tab->mask - 2;
-    tab->entries = (Widget *) __XtCalloc(tab->mask + 1, sizeof(Widget));
+    tab->entries = (Widget *) __IswCalloc(tab->mask + 1, sizeof(Widget));
     tab->occupied = 0;
     tab->fakes = 0;
     tab->pairs = NULL;

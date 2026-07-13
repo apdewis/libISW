@@ -2466,7 +2466,7 @@ NewArgv(int count, _IswString *str)
         nbytes++;
     }
     num = (Cardinal) ((size_t) (count + 1) * sizeof(_IswString));
-    new = newarray = (_IswString *) __XtMalloc(num + nbytes);
+    new = newarray = (_IswString *) __IswMalloc(num + nbytes);
     sptr = ((char *) new) + num;
 
     for (str = strarray; count--; str++) {

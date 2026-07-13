@@ -280,7 +280,7 @@ _IswInitKeysymTables(IswDisplay dpy, register IswPerDisplay pd)
 
     _IswPlatformBuildModMap(dpy, mods, &pool, &count);
 
-    pd->modsToKeysyms = (ModToKeysymTable *) __XtCalloc(8, sizeof(ModToKeysymTable));
+    pd->modsToKeysyms = (ModToKeysymTable *) __IswCalloc(8, sizeof(ModToKeysymTable));
     for (i = 0; i < 8; i++) {
         pd->modsToKeysyms[i].mask  = mods[i].mask;
         pd->modsToKeysyms[i].idx   = mods[i].idx;
@@ -382,7 +382,7 @@ IswRegisterCaseConverter(IswDisplay dpy,
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
 
-    ptr = (CaseConverterPtr) __XtMalloc(sizeof(CaseConverterRec));
+    ptr = (CaseConverterPtr) __IswMalloc(sizeof(CaseConverterRec));
     ptr->start = start;
     ptr->stop = stop;
     ptr->proc = proc;

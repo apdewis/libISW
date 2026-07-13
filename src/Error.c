@@ -340,7 +340,7 @@ program as a non-root user or by removing the suid bit on the executable.");
          * messages shouldn't be called frequently enough for this
          * to be a performance issue.
          */
-        if ((message = __XtMalloc(BIGBUF))) {
+        if ((message = __IswMalloc(BIGBUF))) {
             (void) snprintf(message, BIGBUF, buffer,
                             par[0], par[1], par[2], par[3], par[4],
                             par[5], par[6], par[7], par[8], par[9]);

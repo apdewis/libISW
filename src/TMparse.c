@@ -1618,7 +1618,7 @@ ParseString(register String str, _IswString *strP)
                && *str != '\t' && *str != ',' && *str != ')' && !IsNewline(*str)
                && *str != '\0')
             str++;
-        *strP = __XtMalloc((unsigned) (str - start + 1));
+        *strP = __IswMalloc((unsigned) (str - start + 1));
         (void) memcpy(*strP, start, (size_t) (str - start));
         (*strP)[str - start] = '\0';
     }

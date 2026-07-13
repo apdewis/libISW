@@ -459,7 +459,7 @@ AddEventHandler(Widget widget,
 
     if (!p) {                   /* New proc to add to list */
         if (has_type_specifier) {
-            p = (IswEventRec *) __XtMalloc(sizeof(IswEventRec) +
+            p = (IswEventRec *) __IswMalloc(sizeof(IswEventRec) +
                                           sizeof(IswEventRecExt));
             EXT_TYPE(p) = type;
             EXT_SELECT_DATA(p, 0) = select_data;
@@ -467,7 +467,7 @@ AddEventHandler(Widget widget,
             p->has_type_specifier = True;
         }
         else {
-            p = (IswEventRec *) __XtMalloc(sizeof(IswEventRec));
+            p = (IswEventRec *) __IswMalloc(sizeof(IswEventRec));
             p->mask = eventMask;
             p->has_type_specifier = False;
         }
@@ -2012,7 +2012,7 @@ static IswEventDispatchProc *
 NewDispatcherList(void)
 {
     IswEventDispatchProc *l = (IswEventDispatchProc *)
-        __XtCalloc((Cardinal) 128,
+        __IswCalloc((Cardinal) 128,
                    (Cardinal)
                    sizeof(IswEventDispatchProc));
 
