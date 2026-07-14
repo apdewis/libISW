@@ -125,8 +125,8 @@ static char defaultTranslations[] =
      <LeaveWindow>:     unhighlight()           \n\
      <Motion>:          highlight()             \n\
      <BtnDown>:         notify() unhighlight() popdown()\n\
-     <Btn4Down>:        scroll-up()              \n\
-     <Btn5Down>:        scroll-down()            \n\
+     <ScrollUp>:        scroll-up()              \n\
+     <ScrollDown>:      scroll-down()            \n\
      <Key>Down:         next-entry()            \n\
      <Key>Up:           prev-entry()            \n\
      <Key>Home:         first-entry()           \n\

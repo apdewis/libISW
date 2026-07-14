@@ -27,9 +27,15 @@
 #include <xcb/xcb_keysyms.h>
 #include <xkbcommon/xkbcommon.h>
 
+#ifdef HAVE_XCB_XINPUT
+#include <xcb/xinput.h>
+#endif
+
 #include "IntrinsicI.h"
 #include "InitialI.h"
 #include "ISWPlatformPrivate.h"
+#include "ISWPlatformDisplayXCB.h"
+#include <ISW/IswEvent.h>
 
 /* ---- keysym table ownership (the native xcb_key_symbols_t lives here) -----
    The per-display record carries an opaque keysym-table handle in pd->keysyms;
@@ -263,6 +269,319 @@ xcb_in_keycode_range(IswDisplay dpy, int *min_out, int *max_out)
     if (min_out) *min_out = 8;
     if (max_out) *max_out = 255;
 }
+
+/* ===========================================================================
+ * XInput2 (XI2): smooth/trackpad scroll + semantic button remap.
+ *
+ * When xcb-xinput is available AND the server speaks XI2 ≥ 2.0, master
+ * pointer motion carrying a scroll valuator is translated into an IswScroll
+ * event with a sub-pixel delta (smooth=1).  XI button press/release detail
+ * 4-7 (discrete wheel) becomes IswScroll discrete, and detail 1-3 is remapped
+ * to the semantic Primary/Tertiary/Secondary roles — replacing the core
+ * button events for XI devices.  When XI2 is absent, the core button 4-7
+ * fallback in ISWPlatformEventXCB.c handles discrete scroll.
+ * =========================================================================== */
+
+#ifdef HAVE_XCB_XINPUT
+
+/* Per-display cache of master-pointer scroll axes (one entry per scroll
+   valuator of every master pointer).  `number` is the valuator index within
+   the device's valuator report; `scroll_type` is VERTICAL/HORIZONTAL. */
+typedef struct {
+    xcb_input_device_id_t deviceid;
+    uint16_t number;
+    uint16_t scroll_type;       /* XCB_INPUT_SCROLL_TYPE_VERTICAL/HORIZONTAL */
+    float    increment;         /* one click, in valuator units (fp3232) */
+} IswXcbScrollAxis;
+
+typedef struct {
+    IswXcbScrollAxis *axes;
+    int               count;
+} IswXcbScrollValuators;
+
+/* fp3232 (32.32 fixed point) → float. */
+static float
+xi_fp3232_to_float(xcb_input_fp3232_t v)
+{
+    return (float) ((double) v.integral + (double) v.frac / 4294967296.0);
+}
+
+/* fp1616 (16.16 fixed point) → float, for root/event coordinates. */
+static float
+xi_fp1616_to_float(xcb_input_fp1616_t v)
+{
+    return (float) ((double) v / 65536.0);
+}
+
+static IswXcbScrollValuators *
+xi_scroll_cache(IswDisplay dpy)
+{
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
+    if (idx == NULL)
+        return NULL;
+    return (IswXcbScrollValuators *) idx->scroll_valuators;
+}
+
+/* Query master-pointer devices and record every scroll valuator. */
+static void
+xi_query_scroll_axes(IswDisplay dpy)
+{
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_input_xi_query_device_cookie_t cookie;
+    xcb_input_xi_query_device_reply_t *reply;
+    xcb_input_xi_device_info_iterator_t dit;
+    IswXcbScrollValuators *cache;
+
+    if (idx == NULL || conn == NULL || !idx->xi_present)
+        return;
+
+    cache = (IswXcbScrollValuators *) calloc(1, sizeof(*cache));
+    if (cache == NULL)
+        return;
+    idx->scroll_valuators = cache;
+
+    cookie = xcb_input_xi_query_device(conn, XCB_INPUT_DEVICE_ALL_MASTER);
+    reply = xcb_input_xi_query_device_reply(conn, cookie, NULL);
+    if (reply == NULL)
+        return;
+
+    for (dit = xcb_input_xi_query_device_infos_iterator(reply);
+         dit.rem > 0; xcb_input_xi_device_info_next(&dit)) {
+        xcb_input_xi_device_info_t *info = dit.data;
+        xcb_input_device_class_iterator_t cit;
+
+        for (cit = xcb_input_xi_device_info_classes_iterator(info);
+             cit.rem > 0; xcb_input_device_class_next(&cit)) {
+            xcb_input_device_class_t *cls = cit.data;
+            if (cls->type == XCB_INPUT_DEVICE_CLASS_TYPE_SCROLL) {
+                xcb_input_scroll_class_t *sc = (xcb_input_scroll_class_t *) cls;
+                IswXcbScrollAxis *a;
+                cache->axes = (IswXcbScrollAxis *)
+                    realloc(cache->axes,
+                            (size_t) (cache->count + 1) * sizeof(*a));
+                if (cache->axes == NULL) {
+                    cache->count = 0;
+                    break;
+                }
+                a = &cache->axes[cache->count++];
+                a->deviceid = sc->sourceid;
+                a->number = sc->number;
+                a->scroll_type = sc->scroll_type;
+                a->increment = xi_fp3232_to_float(sc->increment);
+                if (a->increment == 0.0f)
+                    a->increment = 1.0f;
+            }
+        }
+    }
+    free(reply);
+}
+
+void
+_IswXcbInputInit(IswDisplay dpy)
+{
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_query_extension_cookie_t eq;
+    xcb_query_extension_reply_t *ereply;
+    xcb_input_get_extension_version_cookie_t vck;
+    xcb_input_get_extension_version_reply_t *vreply;
+
+    if (idx == NULL || conn == NULL)
+        return;
+
+    eq = xcb_query_extension(conn, 16, "XInputExtension");
+    ereply = xcb_query_extension_reply(conn, eq, NULL);
+    if (ereply == NULL || !ereply->present) {
+        free(ereply);
+        return;
+    }
+    idx->xi_opcode = ereply->major_opcode;
+    free(ereply);
+
+    vck = xcb_input_get_extension_version(conn, 16, "XInputExtension");
+    vreply = xcb_input_get_extension_version_reply(conn, vck, NULL);
+    if (vreply == NULL)
+        return;
+    if (vreply->present && vreply->server_major >= 2)
+        idx->xi_present = 1;
+    free(vreply);
+
+    if (idx->xi_present)
+        xi_query_scroll_axes(dpy);
+}
+
+void
+_IswXcbInputFree(IswDisplay dpy)
+{
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
+    if (idx == NULL || idx->scroll_valuators == NULL)
+        return;
+    {
+        IswXcbScrollValuators *cache =
+            (IswXcbScrollValuators *) idx->scroll_valuators;
+        free(cache->axes);
+        free(cache);
+        idx->scroll_valuators = NULL;
+    }
+}
+
+void
+_IswXcbInputSelectForWindow(IswDisplay dpy, xcb_window_t window)
+{
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    /* Select ONLY XI motion: smooth scroll arrives as XI MotionNotify carrying
+       a scroll valuator.  We deliberately do NOT select XI button press/release
+       — X delivers core button events AND XI button events independently, so
+       selecting both would duplicate every button press.  Discrete wheel
+       (button 4-7) and semantic button remap stay on the core path (which has
+       no such duplication).  Core MotionNotify is also still delivered (XI
+       selection does not suppress core events), so plain pointer motion is
+       handled by the core path; this translator consumes XI motion only when a
+       scroll valuator is present and otherwise returns False. */
+    struct {
+        xcb_input_event_mask_t h;
+        uint32_t v;
+    } packed;
+
+    if (idx == NULL || conn == NULL || !idx->xi_present)
+        return;
+
+    packed.h.deviceid = XCB_INPUT_DEVICE_ALL_MASTER;
+    packed.h.mask_len = 1;
+    packed.v = XCB_INPUT_XI_EVENT_MASK_MOTION;
+    xcb_input_xi_select_events(conn, window, 1, &packed.h);
+}
+
+/* Fill the common scroll pointer-position fields from an XI button/motion
+   event (fp1616 root/event coords). */
+static void
+xi_fill_scroll_pos(IswDisplay dpy, xcb_input_button_press_event_t *xi,
+                   IswEvent *out)
+{
+    float fx = xi_fp1616_to_float(xi->event_x);
+    float fy = xi_fp1616_to_float(xi->event_y);
+    float frx = xi_fp1616_to_float(xi->root_x);
+    float fry = xi_fp1616_to_float(xi->root_y);
+    int16_t ex = (int16_t) fx, ey = (int16_t) fy;
+    int16_t rx = (int16_t) frx, ry = (int16_t) fry;
+    out->scroll.target = _IswXcbTargetForWindow(dpy, xi->event);
+    out->scroll.time = xi->time;
+    out->scroll.x = ex;
+    out->scroll.y = ey;
+    out->scroll.root_x = rx;
+    out->scroll.root_y = ry;
+    _IswXcbShellCoordsForEvent(dpy, xi->event, ex, ey, rx, ry,
+                               &out->scroll.shell_x, &out->scroll.shell_y);
+}
+
+/* Extract scroll-valuator deltas from an XI motion event.  Returns the number
+   of scroll axes found in the valuator report. */
+static int
+xi_extract_scroll(IswDisplay dpy, xcb_input_button_press_event_t *xi,
+                  float *dx_out, float *dy_out)
+{
+    IswXcbScrollValuators *cache = xi_scroll_cache(dpy);
+    const uint32_t *vmask;
+    const xcb_input_fp3232_t *vals;
+    int nvals, i, found = 0;
+
+    if (cache == NULL)
+        return 0;
+    vmask = xcb_input_button_press_valuator_mask(xi);
+    nvals = xcb_input_button_press_axisvalues_length(xi);
+    vals = xcb_input_button_press_axisvalues(xi);
+    (void) nvals;
+
+    for (i = 0; i < cache->count; i++) {
+        IswXcbScrollAxis *a = &cache->axes[i];
+        uint32_t word = a->number >> 5;
+        uint32_t bit = 1u << (a->number & 31);
+        int idx, b;
+        if (vmask == NULL || (vmask[word] & bit) == 0)
+            continue;
+        /* index into axisvalues = number of set bits below a->number */
+        idx = 0;
+        for (b = 0; b < a->number; b++)
+            if (vmask[b >> 5] & (1u << (b & 31)))
+                idx++;
+        if (idx < nvals) {
+            float v = xi_fp3232_to_float(vals[idx]);
+            if (a->scroll_type == XCB_INPUT_SCROLL_TYPE_VERTICAL) {
+                *dy_out += v;
+                found++;
+            } else if (a->scroll_type == XCB_INPUT_SCROLL_TYPE_HORIZONTAL) {
+                *dx_out += v;
+                found++;
+            }
+        }
+    }
+    return found;
+}
+
+Boolean
+_IswXcbInputTranslateEvent(IswDisplay dpy, xcb_generic_event_t *xev,
+                           IswEvent *out)
+{
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
+    xcb_input_button_press_event_t *xi;
+    uint8_t rt;
+    uint16_t mods;
+
+    if (idx == NULL || !idx->xi_present || xev == NULL)
+        return False;
+
+    rt = xev->response_type & ~0x80;
+    if (rt != XCB_GE_GENERIC)
+        return False;
+
+    xi = (xcb_input_button_press_event_t *) xev;
+    if (xi->extension != idx->xi_opcode)
+        return False;
+
+    mods = (uint16_t) (xi->mods.effective & 0x1FFF);
+
+    /* Only XI MotionNotify is selected (see _IswXcbInputSelectForWindow), so
+       this is the only XI event type that reaches here.  A motion event
+       carrying a scroll valuator becomes a smooth IswScroll; a plain pointer
+       motion (no scroll valuator) returns False so the core MotionNotify path
+       handles pointer motion — avoiding any duplication, since XI selection
+       does not suppress core events. */
+    switch (xi->event_type) {
+    case XCB_INPUT_MOTION: {
+        float dx = 0.0f, dy = 0.0f;
+        if (xi_extract_scroll(dpy, xi, &dx, &dy) == 0)
+            return False;   /* plain motion: let core MotionNotify handle it */
+        memset(out, 0, sizeof(*out));
+        out->kind = IswScroll;
+        out->any.synthetic = (xev->response_type & 0x80) ? 1 : 0;
+        xi_fill_scroll_pos(dpy, xi, out);
+        out->scroll.modifiers = mods;
+        out->scroll.smooth = 1;
+        out->scroll.delta_x = dx;
+        out->scroll.delta_y = dy;
+        out->scroll.discrete_x = 0;
+        out->scroll.discrete_y = 0;
+        return True;
+    }
+    default:
+        return False;
+    }
+}
+
+#else  /* !HAVE_XCB_XINPUT */
+
+/* Stubs so the display/event path compiles without xcb-xinput. */
+void      _IswXcbInputInit(IswDisplay dpy) { (void) dpy; }
+void      _IswXcbInputFree(IswDisplay dpy) { (void) dpy; }
+void      _IswXcbInputSelectForWindow(IswDisplay dpy, xcb_window_t window)
+{ (void) dpy; (void) window; }
+Boolean   _IswXcbInputTranslateEvent(IswDisplay dpy, xcb_generic_event_t *xev,
+                                     IswEvent *out)
+{ (void) dpy; (void) xev; (void) out; return False; }
+
+#endif /* HAVE_XCB_XINPUT */
 
 const IswPlatformInputOps isw_platform_xcb_input_ops = {
     .keycode_to_keysym  = xcb_in_keycode_to_keysym,

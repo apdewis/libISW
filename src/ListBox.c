@@ -135,7 +135,7 @@ static IswResource constraintResources[] = {
  * ================================================================ */
 
 static char defaultTranslations[] =
-    "<Btn1Down>:         ListBoxSelect()\n"
+    "<PrimaryDown>:         ListBoxSelect()\n"
     "~Shift ~Ctrl<Key>Up:   ListBoxMoveFocus(up)\n"
     "~Shift ~Ctrl<Key>Down: ListBoxMoveFocus(down)\n"
     "<Key>Home:           ListBoxMoveFocus(home)\n"
@@ -354,7 +354,7 @@ ChildEventHandler(Widget child, IswPointer closure,
     if (iswev->kind != IswButtonDown)
         return;
 
-    if (IswEventButton(iswev) != IswButtonLeft)
+    if (IswEventButton(iswev) != IswButtonPrimary)
         return;
 
     /* Translate event coordinates from child frame to ListBox frame */

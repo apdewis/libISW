@@ -61,6 +61,7 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/Cardinals.h>
 #include <ISW/Scrollbar.h>
+#include <ISW/IswScroll.h>
 #include <ISW/TextP.h>
 #include <ISW/IswArgMacros.h>
 #include "IntrinsicI.h"
@@ -1359,7 +1360,14 @@ static void
 HScroll(Widget w, IswPointer closure, IswPointer callData)
 {
   TextWidget ctx = (TextWidget) closure;
-  Position old_left, pixels = (Position)(intptr_t) callData;
+  IswScrollData *sd = (IswScrollData *) callData;
+  Position old_left, pixels;
+
+  /* discrete steps carry a whole-pixel delta already (scaled by the
+     dispatcher); continuous motion accumulates sub-pixel remainder. */
+  ctx->text.scroll_accum_x += sd->dx;
+  pixels = (Position) ctx->text.scroll_accum_x;
+  ctx->text.scroll_accum_x -= (float) pixels;
 
   _IswTextPrepareToUpdate(ctx);
 
@@ -1460,14 +1468,29 @@ static void
 VScroll(Widget w, IswPointer closure, IswPointer callData)
 {
   TextWidget ctx = (TextWidget)closure;
-  int height, nlines, lines = (intptr_t) callData;
+  IswScrollData *sd = (IswScrollData *) callData;
+  int height, nlines;
+  float pixels;
 
-  height = ctx->core.height - VMargins(ctx);
-  if (height < 1)
-    height = 1;
-  nlines = (int) (lines * (int) ctx->text.lt.lines) / height;
-  if (nlines == 0 && lines != 0)
-    nlines = lines > 0 ? 1 : -1;
+  /* discrete wheel steps map to whole lines (one notch = mult lines, matching
+     the scroll-up/scroll-down actions); continuous motion converts the
+     accumulated pixel delta to lines via the line height. */
+  if (sd->discrete_y != 0) {
+    nlines = (int) sd->discrete_y * (int) ctx->text.mult;
+    if (nlines == 0)
+      nlines = sd->discrete_y > 0 ? 1 : -1;
+  } else {
+    height = ctx->core.height - VMargins(ctx);
+    if (height < 1)
+      height = 1;
+    ctx->text.scroll_accum_y += sd->dy;
+    nlines = (int) (ctx->text.scroll_accum_y * (int) ctx->text.lt.lines) / height;
+    if (nlines != 0)
+      ctx->text.scroll_accum_y -=
+        (float) nlines * (float) height / (float) ctx->text.lt.lines;
+    if (nlines == 0 && sd->dy != 0.0f)
+      nlines = sd->dy > 0.0f ? 1 : -1;
+  }
   _IswTextPrepareToUpdate(ctx);
   _IswTextVScroll(ctx, nlines);
   _IswTextExecuteUpdate(ctx);

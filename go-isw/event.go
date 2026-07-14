@@ -15,21 +15,22 @@ const (
 	KeyUp          EventKind = 2
 	ButtonDown     EventKind = 3
 	ButtonUp       EventKind = 4
-	Motion         EventKind = 5
-	Enter          EventKind = 6
-	Leave          EventKind = 7
-	FocusIn        EventKind = 8
-	FocusOut       EventKind = 9
-	Redraw         EventKind = 10
-	Geometry       EventKind = 11
-	Reparent       EventKind = 12
-	MapEv          EventKind = 13
-	UnmapEv        EventKind = 14
-	Visibility     EventKind = 15
-	DestroyEv      EventKind = 16
-	MappingChanged EventKind = 17
-	Protocol       EventKind = 18
-	WindowClose    EventKind = 19
+	Scroll         EventKind = 5
+	Motion         EventKind = 6
+	Enter          EventKind = 7
+	Leave          EventKind = 8
+	FocusIn        EventKind = 9
+	FocusOut       EventKind = 10
+	Redraw         EventKind = 11
+	Geometry       EventKind = 12
+	Reparent       EventKind = 13
+	MapEv          EventKind = 14
+	UnmapEv        EventKind = 15
+	Visibility     EventKind = 16
+	DestroyEv      EventKind = 17
+	MappingChanged EventKind = 18
+	Protocol       EventKind = 19
+	WindowClose    EventKind = 20
 )
 
 // NotifyMode distinguishes crossing/focus transition causes.
@@ -84,16 +85,18 @@ const (
 	ModHyper   uint16 = ModMod3
 )
 
-// Button identities.
+// Button identities.  Scroll is no longer a button — it is the Scroll event
+// kind.  Values are the semantic roles (Primary=1, Secondary=2, Tertiary=3);
+// Left/Middle/Right are aliases (note Middle=Tertiary=3, Right=Secondary=2).
 const (
-	ButtonNone       uint8 = 0
-	ButtonLeft       uint8 = 1
-	ButtonMiddle     uint8 = 2
-	ButtonRight      uint8 = 3
-	ButtonWheelUp    uint8 = 4
-	ButtonWheelDown  uint8 = 5
-	ButtonWheelLeft  uint8 = 6
-	ButtonWheelRight uint8 = 7
+	ButtonNone      uint8 = 0
+	ButtonPrimary   uint8 = 1
+	ButtonSecondary uint8 = 2
+	ButtonTertiary  uint8 = 3
+
+	ButtonLeft   = ButtonPrimary
+	ButtonMiddle = ButtonTertiary
+	ButtonRight  = ButtonSecondary
 )
 
 // Key identities for non-printable keys (above Unicode range).
@@ -175,6 +178,24 @@ type MotionEvent struct {
 	RootY     int16
 	ShellX    int16
 	ShellY    int16
+}
+
+// ScrollEvent represents a continuous/discrete scroll-axis event.  DeltaX/Y
+// is the sub-pixel pixel delta (negative = up/left); DiscreteX/Y is the signed
+// click-wheel step count; Smooth is true for a continuous (trackpad) source.
+type ScrollEvent struct {
+	EventBase
+	Modifiers  uint16
+	X, Y       int32
+	RootX      int16
+	RootY      int16
+	ShellX     int16
+	ShellY     int16
+	DeltaX     float32
+	DeltaY     float32
+	DiscreteX  int32
+	DiscreteY  int32
+	Smooth     bool
 }
 
 // CrossingEvent represents pointer enter/leave.

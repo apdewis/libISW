@@ -77,8 +77,8 @@ I also added the freedoms member of the list widget part. */
  */
 
 static char defaultTranslations[] =
-  "<Btn1Down>:   Set()\n\
-   <Btn1Up>:     Notify()\n\
+  "<PrimaryDown>:   Set()\n\
+   <PrimaryUp>:     Notify()\n\
    <Key>Up:        PrevItem()\n\
    <Key>Down:      NextItem()\n\
    <Key>Home:      FirstItem()\n\
@@ -1035,10 +1035,10 @@ OpenDropdown(Widget w)
          <LeaveWindow>:     unhighlight()           \n\
          <Motion>:          highlight()             \n\
          <BtnMotion>:       highlight()             \n\
-         <Btn4Down>:        scroll-up()              \n\
-         <Btn5Down>:        scroll-down()            \n\
-         <Btn1Down>:        highlight()             \n\
-         <Btn1Up>:          notify() unhighlight() popdown()";
+         <ScrollUp>:        scroll-up()              \n\
+         <ScrollDown>:      scroll-down()            \n\
+         <PrimaryDown>:        highlight()             \n\
+         <PrimaryUp>:          notify() unhighlight() popdown()";
     IswOverrideTranslations(lw->list.popup_shell,
         IswParseTranslationTable(dropdownTranslations));
     

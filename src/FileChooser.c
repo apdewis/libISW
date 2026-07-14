@@ -515,9 +515,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fc->dirListW = IswCreateManagedWidget("dirList", listWidgetClass,
                                           dir_vp, ab.args, ab.count);
     IswOverrideTranslations(fc->dirListW, IswParseTranslationTable(
-        "<Btn1Down>: Set()\n"
-        "<Btn1Up>: \n"
-        "<Btn1Up>(2): Notify()\n"));
+        "<PrimaryDown>: Set()\n"
+        "<PrimaryUp>: \n"
+        "<PrimaryUp>(2): Notify()\n"));
     IswAddCallback(fc->dirListW, IswNcallback, dir_select_cb, (IswPointer)fcw);
 
     IswArgBuilderReset(&ab);
@@ -543,9 +543,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fc->fileListW = IswCreateManagedWidget("fileList", listWidgetClass,
                                            file_vp, ab.args, ab.count);
     IswOverrideTranslations(fc->fileListW, IswParseTranslationTable(
-        "<Btn1Down>: Set()\n"
-        "<Btn1Up>: \n"
-        "<Btn1Up>(2): Notify()\n"));
+        "<PrimaryDown>: Set()\n"
+        "<PrimaryUp>: \n"
+        "<PrimaryUp>(2): Notify()\n"));
     IswAddCallback(fc->fileListW, IswNcallback, file_select_cb, (IswPointer)fcw);
 
     Widget bottom_anchor = dir_vp;

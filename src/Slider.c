@@ -84,9 +84,9 @@ static int ValueZoneHeight(SliderWidget sw);
 static int ValueZoneWidth(SliderWidget sw);
 
 static char defaultTranslations[] =
-    "<Btn1Down>:   StartDrag()\n\
+    "<PrimaryDown>:   StartDrag()\n\
      <Btn1Motion>: Drag()\n\
-     <Btn1Up>:     EndDrag()\n\
+     <PrimaryUp>:     EndDrag()\n\
      <Key>Left:    Decrement()\n\
      <Key>Down:    Decrement()\n\
      <Key>Right:   Increment()\n\

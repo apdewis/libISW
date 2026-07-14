@@ -56,6 +56,7 @@ SOFTWARE.
 
 #include <ISW/ISWInit.h>
 #include <ISW/Scrollbar.h>
+#include <ISW/IswScroll.h>
 #include <ISW/ViewportP.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWRender.h>
@@ -989,13 +990,27 @@ ScrollUpDownProc(Widget widget, IswPointer closure, IswPointer call_data)
 {
     ViewportWidget w = (ViewportWidget)closure;
     Widget child = w->viewport.child;
-    int pix = (intptr_t) call_data;
+    IswScrollData *sd = (IswScrollData *) call_data;
     Position x, y;
+    int pix_x = 0, pix_y = 0;
 
     if (child == NULL) return;	/* no child to scroll. */
 
-    x = w->viewport.scroll_x - ((widget == w->viewport.horiz_bar) ? pix : 0);
-    y = w->viewport.scroll_y - ((widget == w->viewport.vert_bar) ? pix : 0);
+    /* Accumulate the sub-pixel continuous delta so smooth trackpad scroll
+       doesn't quantize to whole pixels.  The dispatcher routes the vertical
+       axis to the vert bar and the horizontal axis to the horiz bar. */
+    if (widget == w->viewport.vert_bar) {
+        w->viewport.scroll_accum_y += sd->dy;
+        pix_y = (int) w->viewport.scroll_accum_y;
+        w->viewport.scroll_accum_y -= (float) pix_y;
+    } else if (widget == w->viewport.horiz_bar) {
+        w->viewport.scroll_accum_x += sd->dx;
+        pix_x = (int) w->viewport.scroll_accum_x;
+        w->viewport.scroll_accum_x -= (float) pix_x;
+    }
+
+    x = w->viewport.scroll_x - pix_x;
+    y = w->viewport.scroll_y - pix_y;
     MoveChild(w, x, y);
 }
 

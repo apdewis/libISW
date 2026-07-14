@@ -105,7 +105,7 @@ typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
  ****************************************************************************/
 
 static char defGripTranslations[] =
-    "<Btn1Down>:		GripAction(Start) \n\
+    "<PrimaryDown>:		GripAction(Start) \n\
      <Btn1Motion>:		GripAction(Move) \n\
      Any<BtnUp>:		GripAction(Commit)";
 

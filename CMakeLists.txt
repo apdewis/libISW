@@ -44,6 +44,13 @@ if(NOT ISW_NO_PKGCONFIG)
     pkg_check_modules(ISW_DEPS REQUIRED IMPORTED_TARGET
         xcb xcb-shape xcb-present xcb-cursor xcb-sync)
 
+    # Optional: XInput2 (smooth/trackpad scroll).  Core button 4-7 fallback
+    # works without it; HAVE_XCB_XINPUT enables continuous-axis scroll.
+    pkg_check_modules(XCB_XINPUT IMPORTED_TARGET xcb-xinput)
+    if(XCB_XINPUT_FOUND)
+        set(HAVE_XCB_XINPUT TRUE)
+    endif()
+
     pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
     pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
 
@@ -86,6 +93,18 @@ else()
     _isw_bsd_find_lib(ISW_BSD_XCB_PRESENT  xcb-present)
     _isw_bsd_find_lib(ISW_BSD_XCB_CURSOR   xcb-cursor)
     _isw_bsd_find_lib(ISW_BSD_XCB_SYNC     xcb-sync)
+
+    # Optional: XInput2 (smooth/trackpad scroll).  Non-failing variant of
+    # _isw_bsd_find_lib for an optional dependency.
+    find_library(ISW_BSD_XCB_XINPUT xcb-xinput)
+    if(ISW_BSD_XCB_XINPUT)
+        set(HAVE_XCB_XINPUT TRUE)
+        set(XCB_XINPUT_FOUND TRUE)
+        add_library(PkgConfig::XCB_XINPUT INTERFACE IMPORTED)
+        target_include_directories(PkgConfig::XCB_XINPUT INTERFACE ${ISW_BSD_INCLUDE_DIR})
+        target_link_libraries(PkgConfig::XCB_XINPUT INTERFACE ${ISW_BSD_XCB_XINPUT})
+    endif()
+
     _isw_bsd_find_lib(ISW_BSD_FONTCONFIG   fontconfig)
     _isw_bsd_find_lib(ISW_BSD_FREETYPE     freetype)
     _isw_bsd_find_lib(ISW_BSD_CAIRO        cairo)
@@ -408,6 +427,10 @@ if(XKBCOMMON_FOUND)
     target_compile_definitions(ISW PRIVATE HAVE_XKBCOMMON=1)
 endif()
 
+if(HAVE_XCB_XINPUT)
+    target_compile_definitions(ISW PRIVATE HAVE_XCB_XINPUT=1)
+endif()
+
 # Warning flags (replaces XORG_DEFAULT_OPTIONS)
 target_compile_options(ISW PRIVATE
     -Wall
@@ -451,6 +474,10 @@ target_link_libraries(ISW PRIVATE
 
 if(XKBCOMMON_FOUND)
     target_link_libraries(ISW PRIVATE PkgConfig::XKBCOMMON)
+endif()
+
+if(HAVE_XCB_XINPUT)
+    target_link_libraries(ISW PRIVATE PkgConfig::XCB_XINPUT)
 endif()
 
 if(ISW_RENDER_EGL)
@@ -509,6 +536,24 @@ endif()
 target_link_libraries(focus_dispatch_test PRIVATE ISW PkgConfig::DEMO_DEPS PkgConfig::XCB_KEYSYMS m)
 target_include_directories(focus_dispatch_test PRIVATE
     ${CMAKE_SOURCE_DIR}/include
+)
+
+# Unit tests for the generic-input / smooth-scroll model.  Self-contained:
+# links against the ISW shared library and exercises _IswMatchScroll plus the
+# translation-table parser for the new semantic/scroll names.
+add_executable(tm_scroll_test EXCLUDE_FROM_ALL
+    tests/tm_scroll_test.c
+)
+target_link_libraries(tm_scroll_test PRIVATE ISW PkgConfig::DEMO_DEPS m)
+target_include_directories(tm_scroll_test PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include/ISW
+    ${CMAKE_SOURCE_DIR}/src
+)
+add_custom_target(test_tm_scroll
+    COMMAND $<TARGET_FILE:tm_scroll_test>
+    DEPENDS tm_scroll_test
+    COMMENT "Running TM scroll matcher / parse tests"
 )
 
 # Focused XDND drag-and-drop test app — temporarily disabled while XDnd is off
@@ -630,6 +675,7 @@ message(STATUS "  EGL (NanoVG):          ${ISW_RENDER_EGL}")
 message(STATUS "")
 message(STATUS "Optional:")
 message(STATUS "  xkbcommon:             ${XKBCOMMON_FOUND}")
+message(STATUS "  xcb-xinput (XI2 scroll):${HAVE_XCB_XINPUT}")
 
 message(STATUS "==========================================")
 message(STATUS "")

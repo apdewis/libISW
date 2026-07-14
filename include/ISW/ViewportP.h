@@ -88,6 +88,10 @@ typedef struct _ViewportPart {
                                    [tile_x .. tile_x+tile_w, tile_y .. tile_y+tile_h].
                                    Scroll within the tile is free (no repaint). */
     int tile_w, tile_h;        /* current tile dimensions (clip + margin) */
+    float scroll_accum_x, scroll_accum_y; /* sub-pixel remainder from smooth
+                                             scroll, so continuous trackpad
+                                             motion doesn't quantize to whole
+                                             pixels and jitter. */
     /* ThreeDWidget threeD; -- ThreeD widget removed */
 } ViewportPart;
 

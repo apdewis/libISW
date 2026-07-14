@@ -188,6 +188,7 @@ static String ParseKeyAndModifiers(PARSE_PROC_DECL);
 static String ParseTable(PARSE_PROC_DECL);
 static String ParseButton(PARSE_PROC_DECL);
 static String ParseImmed(PARSE_PROC_DECL);
+static String ParseScrollImmed(PARSE_PROC_DECL);
 static String ParseAddModifier(PARSE_PROC_DECL);
 static String ParseNone(PARSE_PROC_DECL);
 static String ParseProtocolName(PARSE_PROC_DECL);
@@ -208,21 +209,47 @@ static EventKey events[] = {
 
 {"ButtonPress",     ISW_NULLQUARK, IswButtonDown,       ParseButton, NULL },
 {"BtnDown",         ISW_NULLQUARK, IswButtonDown,       ParseButton, NULL },
-{"Btn1Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonLeft},
-{"Btn2Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonMiddle},
-{"Btn3Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonRight},
-{"Btn4Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelUp},
-{"Btn5Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelDown},
+/* Semantic pointer roles (canonical). */
+{"PrimaryDown",     ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonPrimary},
+{"SecondaryDown",   ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonSecondary},
+{"TertiaryDown",    ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonTertiary},
+{"PrimaryUp",       ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonPrimary},
+{"SecondaryUp",     ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonSecondary},
+{"TertiaryUp",     ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonTertiary},
+/* Legacy Btn1/2/3 aliases.  Note the 2<->3 swap vs. the old numeric values:
+   Btn2 was Middle=Tertiary(3), Btn3 was Right=Secondary(2). */
+{"Btn1Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonPrimary},
+{"Btn2Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonTertiary},
+{"Btn3Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonSecondary},
+/* Legacy Btn4-7 aliases now map to the IswScroll axis (scroll is no longer a
+   button).  Both Down and Up halves map to the same scroll event so old tables
+   that pair <Btn4Down>,<Btn4Up> still match. */
+{"Btn4Down",        ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollUp},
+{"Btn5Down",        ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollDown},
+{"Btn6Down",        ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollLeft},
+{"Btn7Down",        ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollRight},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
 {"ButtonRelease",   ISW_NULLQUARK, IswButtonUp,         ParseButton, NULL },
 {"BtnUp",           ISW_NULLQUARK, IswButtonUp,         ParseButton, NULL },
-{"Btn1Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonLeft},
-{"Btn2Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonMiddle},
-{"Btn3Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonRight},
-{"Btn4Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelUp},
-{"Btn5Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelDown},
+{"Btn1Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonPrimary},
+{"Btn2Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonTertiary},
+{"Btn3Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonSecondary},
+{"Btn4Up",          ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollUp},
+{"Btn5Up",          ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollDown},
+{"Btn6Up",          ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollLeft},
+{"Btn7Up",          ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollRight},
+
+/* Canonical scroll names.  <Scroll> matches any scroll event; <ScrollY>/<ScrollX>
+   match by axis; <ScrollUp/Down/Left/Right> match by sign. */
+{"Scroll",          ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollAny},
+{"ScrollUp",        ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollUp},
+{"ScrollDown",      ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollDown},
+{"ScrollLeft",      ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollLeft},
+{"ScrollRight",     ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollRight},
+{"ScrollY",         ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollAxisY},
+{"ScrollX",         ISW_NULLQUARK, IswScroll,           ParseScrollImmed, (Opaque)IswScrollAxisX},
 
 {"MotionNotify",    ISW_NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
 {"PtrMoved",        ISW_NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
@@ -785,6 +812,22 @@ ParseImmed(register String str,
 {
     event->event.eventCode = (unsigned long) closure;
     event->event.eventCodeMask = (unsigned long) (~0UL);
+
+    return BROKEN_OPTIMIZER_HACK(str);
+}
+
+/* Scroll-direction closure: like ParseImmed (the closure is an IswScrollDir),
+   but installs the sign/axis matcher so <ScrollUp>/<ScrollY>/... match scroll
+   events by direction rather than by exact code. */
+static String
+ParseScrollImmed(register String str,
+                 register Opaque closure,
+                 register EventPtr event,
+                 Boolean *error _X_UNUSED)
+{
+    event->event.eventCode = (unsigned long) closure;
+    event->event.eventCodeMask = (unsigned long) (~0UL);
+    event->event.matchEvent = _IswMatchScroll;
 
     return BROKEN_OPTIMIZER_HACK(str);
 }

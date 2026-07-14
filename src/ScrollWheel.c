@@ -1,22 +1,29 @@
 /*
- * ScrollWheel.c - Scroll wheel support for ISW widgets
+ * ScrollWheel.c - Continuous scroll-axis dispatch for ISW widgets
  *
- * Installs a custom IswEventDispatchProc for ButtonPress and ButtonRelease
- * events. When a scroll wheel button (4/5 vertical, 6/7 horizontal) is
- * detected, walks up the widget tree from the pointer target to find the
- * nearest scrollable container (Viewport, Text) or standalone Scrollbar,
- * and forwards the scroll event as a scrollProc callback.
+ * Installs a custom IswEventDispatchProc for the IswScroll event kind.
+ * When a scroll event arrives (continuous trackpad motion or a discrete
+ * wheel notch), walks up the widget tree from the pointer target to find the
+ * nearest scrollable container (Viewport, Text) or standalone Scrollbar and
+ * forwards it as a scrollProc callback carrying an IswScrollData payload
+ * (sub-pixel dx/dy + signed discrete steps + smooth flag).
  *
- * The scroll increment is read from the target Scrollbar widget's
- * scrollWheelIncrement resource (default ISW_SCROLL_WHEEL_DEFAULT_INCREMENT
- * pixels per notch).
+ * Coordinate handling: the dispatch core (_IswDescaleEventCoords in Event.c,
+ * invoked from IswDispatchEvent) has already converted the event's physical
+ * coordinates to logical pixels BEFORE this dispatcher runs.  This dispatcher
+ * must NOT re-descale — it reads event->scroll.x/y as logical pixels.
  *
- * Shift+button4/5 switches to horizontal scrolling.
- * Buttons 6/7 always scroll horizontally.
+ * Discrete-to-pixel scaling: a discrete wheel step carries discrete_x/y = +/-1
+ * and delta_x/y = 0.  The dispatcher scales the discrete path by the target
+ * Scrollbar's scrollWheelIncrement resource (default
+ * ISW_SCROLL_WHEEL_DEFAULT_INCREMENT) into the pixel delta it passes to
+ * scrollProc, so the per-scrollbar increment still governs wheel speed.
+ * Smooth (continuous) scrolls pass delta_x/y through unchanged — the increment
+ * resource is irrelevant for smooth input.
  *
- * Scroll stickiness: once a scrollbar is targeted, subsequent scroll
- * events within ISW_SCROLL_STICKY_MS continue scrolling the same widget
- * even if the pointer has moved over a different scrollable. This
+ * Scroll stickiness: once a scrollable container is targeted, subsequent
+ * scroll events within ISW_SCROLL_STICKY_MS continue scrolling the same
+ * container even if the pointer has moved over a different scrollable.  This
  * prevents jarring target switches mid-scroll.
  */
 
@@ -24,143 +31,129 @@
 #include "config.h"
 #endif
 
-#include <ISW/IntrinsicP.h>
+#include <ISW/IntrinsicI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ScrollWheel.h>
+#include <ISW/IswScroll.h>
 #include <ISW/ScrollbarP.h>
 #include <ISW/ViewportP.h>
 #include <ISW/TextP.h>
 #include <ISW/EventI.h>
-
-/* Defined in Initialize.c — avoids pulling in InitialI.h's heavy deps. */
-extern double _IswGetScaleFactor(IswDisplay dpy);
+#include <ISW/PassivGraI.h>
 
 #include <stdint.h>
 
-/* Saved original dispatchers so we can chain to them */
-static IswEventDispatchProc original_press_dispatcher = NULL;
-static IswEventDispatchProc original_release_dispatcher = NULL;
+static IswEventDispatchProc original_scroll_dispatcher = NULL;
 static Boolean scroll_wheel_initialized = False;
 
-/* Scroll stickiness state */
+/* Scroll stickiness state.  sticky_container is the scrollable container
+ * (Viewport/Text/standalone Scrollbar) last scrolled; re-dispatching from it
+ * routes both axes to the correct bars without re-hit-testing. */
 #define ISW_SCROLL_STICKY_MS 250
-static Widget         sticky_scrollbar = NULL;
-static IswTime sticky_timestamp = 0;
+static Widget   sticky_container = NULL;
+static IswTime  sticky_timestamp = 0;
 
-/*
- * Called when the sticky scrollbar widget is destroyed, so we don't
- * hold a dangling pointer.
- */
 static void
 StickyDestroyCallback(Widget w, IswPointer closure, IswPointer call_data)
 {
-    if (sticky_scrollbar == w)
-        sticky_scrollbar = NULL;
+    if (sticky_container == w)
+        sticky_container = NULL;
 }
 
-/*
- * Set the sticky scrollbar target.  Registers a destroy callback so
- * the pointer is cleared if the widget goes away.
- */
 static void
-SetStickyTarget(Widget bar, IswTime time)
+SetStickyTarget(Widget container, IswTime time)
 {
-    if (bar != sticky_scrollbar) {
-        if (sticky_scrollbar != NULL)
-            IswRemoveCallback(sticky_scrollbar, IswNdestroyCallback,
-                             StickyDestroyCallback, NULL);
-        sticky_scrollbar = bar;
-        if (bar != NULL)
-            IswAddCallback(bar, IswNdestroyCallback,
-                          StickyDestroyCallback, NULL);
+    if (container != sticky_container) {
+        if (sticky_container != NULL)
+            IswRemoveCallback(sticky_container, IswNdestroyCallback,
+                              StickyDestroyCallback, NULL);
+        sticky_container = container;
+        if (container != NULL)
+            IswAddCallback(container, IswNdestroyCallback,
+                           StickyDestroyCallback, NULL);
     }
     sticky_timestamp = time;
 }
 
 /*
- * Dispatch a scroll to the given scrollbar widget and update stickiness.
+ * Dispatch an IswScrollData to a Scrollbar widget's scrollProc, scaling the
+ * discrete step count by the bar's scrollWheelIncrement into the pixel delta.
+ * The discrete fields are preserved so line-oriented consumers (Text) can map
+ * a notch to whole lines.  Updates stickiness to the bar's container.
  */
 static void
-ScrollTo(Widget bar, int direction, IswTime time)
+DispatchToBar(Widget bar, const IswScrollData *in, IswTime time)
 {
-    ScrollbarWidget sbw = (ScrollbarWidget)bar;
-    intptr_t increment = direction *
-        (intptr_t)sbw->scrollbar.scroll_wheel_increment;
-    IswCallCallbacks(bar, IswNscrollProc, (IswPointer)increment);
-    SetStickyTarget(bar, time);
-}
+    ScrollbarWidget sbw = (ScrollbarWidget) bar;
+    IswScrollData sd = *in;
+    Dimension incr = sbw->scrollbar.scroll_wheel_increment;
 
-/*
- * Determine scroll direction and axis from button detail and modifier state.
- * Returns True if this is a scroll wheel event, False otherwise.
- */
-static Boolean
-DecodeScrollWheel(IswEvent *event,
-                  int *direction_out, Boolean *horizontal_out)
-{
-    Boolean shift = (event->button.modifiers & IswModShift) != 0;
-    switch (event->button.button) {
-    case IswButtonWheelUp:
-        *direction_out = -1;
-        *horizontal_out = shift;
-        return True;
-    case IswButtonWheelDown:
-        *direction_out = 1;
-        *horizontal_out = shift;
-        return True;
-    case IswButtonWheelLeft:
-        *direction_out = -1;
-        *horizontal_out = True;
-        return True;
-    case IswButtonWheelRight:
-        *direction_out = 1;
-        *horizontal_out = True;
-        return True;
-    default:
-        return False;
-    }
+    if (incr == 0)
+        incr = ISW_SCROLL_WHEEL_DEFAULT_INCREMENT;
+
+    /* Scale the discrete path into the continuous pixel delta.  Smooth input
+       already carries pixel delta (discrete == 0) and passes through. */
+    sd.dx += (float) sd.discrete_x * (float) incr;
+    sd.dy += (float) sd.discrete_y * (float) incr;
+
+    IswCallCallbacks(bar, IswNscrollProc, (IswPointer) &sd);
 }
 
 /*
  * Walk up the widget tree from 'start' looking for a scrollable container.
- * Returns the scrollbar widget that was dispatched to, or NULL.
+ * Dispatches to the axis-appropriate scrollbar(s) and returns the container
+ * widget (for stickiness), or NULL if none found.
  */
 static Widget
-FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
-                      IswTime time)
+FindAndDispatchScroll(Widget start, const IswScrollData *sd, IswTime time)
 {
     Widget w;
     Widget scrollbar_found = NULL;
+    Boolean has_vert  = (sd->dy != 0.0f || sd->discrete_y != 0);
+    Boolean has_horiz = (sd->dx != 0.0f || sd->discrete_x != 0);
 
     for (w = start; w != NULL; w = IswParent(w)) {
-        /* Check for Viewport - preferred target */
+        /* Viewport: vert bar takes the vertical axis, horiz bar the horizontal. */
         if (IswIsSubclass(w, viewportWidgetClass)) {
-            ViewportWidget vw = (ViewportWidget)w;
-            Widget bar = horizontal ? vw->viewport.horiz_bar
-                                    : vw->viewport.vert_bar;
-            if (bar != NULL)
-                ScrollTo(bar, direction, time);
-            return bar;
+            ViewportWidget vw = (ViewportWidget) w;
+            if (has_vert && vw->viewport.vert_bar != NULL)
+                DispatchToBar(vw->viewport.vert_bar, sd, time);
+            if (has_horiz && vw->viewport.horiz_bar != NULL)
+                DispatchToBar(vw->viewport.horiz_bar, sd, time);
+            return w;
         }
 
-        /* Check for Text widget */
+        /* Text: same axis split between vbar/hbar. */
         if (IswIsSubclass(w, textWidgetClass)) {
-            TextWidget tw = (TextWidget)w;
-            Widget bar = horizontal ? tw->text.hbar : tw->text.vbar;
-            if (bar != NULL)
-                ScrollTo(bar, direction, time);
-            return bar;
+            TextWidget tw = (TextWidget) w;
+            if (has_vert && tw->text.vbar != NULL)
+                DispatchToBar(tw->text.vbar, sd, time);
+            if (has_horiz && tw->text.hbar != NULL)
+                DispatchToBar(tw->text.hbar, sd, time);
+            return w;
         }
 
-        /* Remember first scrollbar seen (fallback for standalone scrollbars) */
-        if (scrollbar_found == NULL && IswIsSubclass(w, scrollbarWidgetClass)) {
+        /* Remember first standalone scrollbar as a fallback. */
+        if (scrollbar_found == NULL && IswIsSubclass(w, scrollbarWidgetClass))
             scrollbar_found = w;
-        }
     }
 
-    /* No Viewport or Text found; use standalone scrollbar if we passed one */
+    /* No Viewport/Text found; use a standalone scrollbar if we passed one.
+       Route only the axis matching its orientation. */
     if (scrollbar_found != NULL) {
-        ScrollTo(scrollbar_found, direction, time);
+        ScrollbarWidget sbw = (ScrollbarWidget) scrollbar_found;
+        IswScrollData axis = *sd;
+        if (sbw->scrollbar.orientation == IswOrientVertical) {
+            axis.dx = 0.0f;
+            axis.discrete_x = 0;
+            if (has_vert)
+                DispatchToBar(scrollbar_found, &axis, time);
+        } else {
+            axis.dy = 0.0f;
+            axis.discrete_y = 0;
+            if (has_horiz)
+                DispatchToBar(scrollbar_found, &axis, time);
+        }
         return scrollbar_found;
     }
 
@@ -168,74 +161,75 @@ FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
 }
 
 /*
- * Custom ButtonPress event dispatcher.
- * Intercepts scroll wheel buttons (4-7) and routes them via ancestor walk.
- * All other button events are passed to the original dispatcher.
+ * Custom IswScroll event dispatcher.  Hit-tests the pointer to find the
+ * nearest scrollable, honoring the sticky target and an in-flight windowless
+ * pointer grab (so a scroll during a drag stays targeted).  Coordinates are
+ * already logical (descaled by the dispatch core before this runs).
  */
 static Boolean
-ScrollWheelPressDispatcher(IswEvent *event, IswDisplay conn)
+ScrollDispatcher(IswEvent *event, IswDisplay conn)
 {
-    if (event->kind == IswButtonDown) {
-        int direction;
-        Boolean horizontal;
+    IswScrollData sd;
+    IswTime time;
+    Widget root;
+    Widget target = NULL;
 
-        if (DecodeScrollWheel(event, &direction, &horizontal)) {
-            IswTime time = event->any.time;
-            /* If we have a recent sticky target, keep using it */
-            if (sticky_scrollbar != NULL &&
-                (time - sticky_timestamp) < ISW_SCROLL_STICKY_MS) {
-                ScrollTo(sticky_scrollbar, direction, time);
-            } else {
-                /* The event's target is the root widget; the scrollable
-                   container under the pointer is a windowless descendant.
-                   Hit-test the pointer to find the deepest windowless widget,
-                   then walk up to its Viewport/Text. */
-                Widget root = (Widget) (void *) event->any.target;
-                Widget target = NULL;
-                if (root != NULL) {
-                    int dx = 0, dy = 0;
-                    /* This custom dispatcher runs before the default one
-                       descales event coords, so x/y are physical; the hit-test
-                       works in logical pixels. */
-                    double sf = _IswGetScaleFactor(conn);
-                    int lx = (sf > 1.0) ? (int)(event->button.x / sf)
-                                        : event->button.x;
-                    int ly = (sf > 1.0) ? (int)(event->button.y / sf)
-                                        : event->button.y;
-                    target = _IswFindWidgetAtPoint(root, lx, ly, &dx, &dy);
-                }
-                if (target != NULL)
-                    FindAndDispatchScroll(target, direction, horizontal, time);
-                else
-                    SetStickyTarget(NULL, 0);
-            }
-            /* Always consume scroll wheel press events */
+    if (event->kind != IswScroll)
+        return False;
+
+    sd.dx = event->scroll.delta_x;
+    sd.dy = event->scroll.delta_y;
+    sd.discrete_x = event->scroll.discrete_x;
+    sd.discrete_y = event->scroll.discrete_y;
+    sd.smooth = event->scroll.smooth;
+    time = event->any.time;
+
+    /* Sticky target: keep scrolling the same container within the sticky
+       window so a quick succession of wheel notches doesn't retarget. */
+    if (sticky_container != NULL &&
+        (time - sticky_timestamp) < ISW_SCROLL_STICKY_MS &&
+        IswIsWidget(sticky_container) &&
+        !sticky_container->core.being_destroyed) {
+        Widget c = FindAndDispatchScroll(sticky_container, &sd, time);
+        if (c != NULL) {
+            SetStickyTarget(c, time);
             return True;
         }
     }
 
-    /* Not a scroll wheel event — chain to original dispatcher */
-    return (*original_press_dispatcher)(event, conn);
-}
-
-/*
- * Custom ButtonRelease event dispatcher.
- * Consumes scroll wheel release events (4-7) to prevent them from
- * triggering EndScroll or other unintended actions on scrollbar widgets.
- */
-static Boolean
-ScrollWheelReleaseDispatcher(IswEvent *event, IswDisplay conn)
-{
-    if (event->kind == IswButtonUp) {
-        if (event->button.button >= 4 && event->button.button <= 7)
-            return True; /* consume silently */
+    root = (Widget) (void *) event->any.target;
+    if (root != NULL) {
+        int dx = 0, dy = 0;
+        target = _IswFindWidgetAtPoint(root, event->scroll.x, event->scroll.y,
+                                       &dx, &dy);
     }
 
-    return (*original_release_dispatcher)(event, conn);
+    /* Honor an in-flight windowless pointer grab: a scroll while a button
+       drag is active stays targeted at the grabbed widget's scrollable. */
+    if (target == NULL) {
+        IswPerDisplayInput pdi = _IswGetPerDisplayInput(conn);
+        if (pdi != NULL && pdi->windowlessButtonGrab != NULL &&
+            IswIsWidget(pdi->windowlessButtonGrab) &&
+            !pdi->windowlessButtonGrab->core.being_destroyed)
+            target = pdi->windowlessButtonGrab;
+    }
+
+    if (target != NULL) {
+        Widget c = FindAndDispatchScroll(target, &sd, time);
+        if (c != NULL)
+            SetStickyTarget(c, time);
+        else
+            SetStickyTarget(NULL, 0);
+    } else {
+        SetStickyTarget(NULL, 0);
+    }
+
+    /* Always consume scroll events — they are fully handled here. */
+    return True;
 }
 
 /*
- * Install scroll wheel event dispatchers for the given connection.
+ * Install the scroll event dispatcher for the given connection.
  * Safe to call multiple times; only the first call has any effect.
  */
 void
@@ -245,9 +239,6 @@ ISWScrollWheelInit(IswDisplay conn)
         return;
     scroll_wheel_initialized = True;
 
-    original_press_dispatcher = IswSetEventDispatcher(
-        conn, IswButtonDown, ScrollWheelPressDispatcher);
-
-    original_release_dispatcher = IswSetEventDispatcher(
-        conn, IswButtonUp, ScrollWheelReleaseDispatcher);
+    original_scroll_dispatcher = IswSetEventDispatcher(
+        conn, IswScroll, ScrollDispatcher);
 }

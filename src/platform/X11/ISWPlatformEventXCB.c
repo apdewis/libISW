@@ -184,6 +184,12 @@ target_for_window(IswDisplay dpy, xcb_window_t window)
     return (IswEventTarget) (void *) _IswXcbWidgetForWindow(dpy, window);
 }
 
+IswEventTarget
+_IswXcbTargetForWindow(IswDisplay dpy, xcb_window_t window)
+{
+    return target_for_window(dpy, window);
+}
+
 /* Resolve the pointer position relative to the top-level shell window's
    content origin, in physical pixels (the dispatch core descales to logical).
    When the event window IS the shell window (the common case in this
@@ -216,6 +222,16 @@ shell_coords_for_event(IswDisplay dpy, xcb_window_t event_win,
             *shell_y = (int16_t)(root_y - sy);
         }
     }
+}
+
+void
+_IswXcbShellCoordsForEvent(IswDisplay dpy, xcb_window_t event_win,
+                           int16_t event_x, int16_t event_y,
+                           int16_t root_x, int16_t root_y,
+                           int16_t *shell_x, int16_t *shell_y)
+{
+    shell_coords_for_event(dpy, event_win, event_x, event_y,
+                           root_x, root_y, shell_x, shell_y);
 }
 
 /*
@@ -252,6 +268,15 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     type = xev->response_type & ~0x80;
     synthetic = (xev->response_type & 0x80) ? 1 : 0;
 
+    /* XInput2 (XI2) events arrive as generic events routed by the XI opcode.
+       Let the XI2 translator handle them first (smooth scroll valuator motion,
+       semantic button remap); it returns False for non-XI / non-scroll events
+       so the core switch below handles the rest. */
+    if (type == XCB_GE_GENERIC) {
+        if (_IswXcbInputTranslateEvent(dpy, xev, out))
+            return True;
+    }
+
     memset(out, 0, sizeof(*out));
     out->any.synthetic = synthetic;
     //out->any.native = xev;
@@ -281,11 +306,62 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_BUTTON_PRESS:
     case XCB_BUTTON_RELEASE: {
         xcb_button_press_event_t *e = (xcb_button_press_event_t *) xev;
+        uint16_t mods = xcb_state_to_modmask(e->state);
+        int detail = e->detail;
+
+        /* Scroll wheel buttons (4-7) are a first-class IswScroll event, not a
+           button.  A wheel notch is press-only: X synthesizes a press+release
+           pair per notch, so emitting scroll on both would double-step — drop
+           the release.  Shift+vertical-wheel swaps to the horizontal axis,
+           preserving the legacy behaviour.  The discrete step carries no
+           pre-baked pixel delta; the scroll dispatcher scales it by the target
+           Scrollbar's scrollWheelIncrement. */
+        if (detail >= 4 && detail <= 7) {
+            if (type == XCB_BUTTON_RELEASE)
+                return False;
+            out->kind = IswScroll;
+            out->scroll.target = target_for_window(dpy, e->event);
+            out->scroll.time = e->time;
+            out->scroll.modifiers = mods;
+            out->scroll.x = e->event_x;
+            out->scroll.y = e->event_y;
+            out->scroll.root_x = e->root_x;
+            out->scroll.root_y = e->root_y;
+            shell_coords_for_event(dpy, e->event, e->event_x, e->event_y,
+                                   e->root_x, e->root_y,
+                                   &out->scroll.shell_x, &out->scroll.shell_y);
+            out->scroll.smooth = 0;
+            out->scroll.delta_x = 0.0f;
+            out->scroll.delta_y = 0.0f;
+            out->scroll.discrete_x = 0;
+            out->scroll.discrete_y = 0;
+            switch (detail) {
+            case 4: /* wheel up / shift-left */
+                if (mods & IswModShift) out->scroll.discrete_x = -1;
+                else out->scroll.discrete_y = -1;
+                break;
+            case 5: /* wheel down / shift-right */
+                if (mods & IswModShift) out->scroll.discrete_x = 1;
+                else out->scroll.discrete_y = 1;
+                break;
+            case 6: out->scroll.discrete_x = -1; break; /* wheel left  */
+            case 7: out->scroll.discrete_x = 1;  break; /* wheel right */
+            }
+            return True;
+        }
+
         out->kind = (type == XCB_BUTTON_PRESS) ? IswButtonDown : IswButtonUp;
         out->button.target = target_for_window(dpy, e->event);
         out->button.time = e->time;
-        out->button.button = (uint8_t) e->detail;
-        out->button.modifiers = xcb_state_to_modmask(e->state);
+        /* Remap raw X detail to semantic roles: 1->Primary, 2->Tertiary
+           (middle), 3->Secondary (right).  Other details map to None. */
+        switch (detail) {
+        case 1: out->button.button = IswButtonPrimary;   break;
+        case 2: out->button.button = IswButtonTertiary;  break;
+        case 3: out->button.button = IswButtonSecondary; break;
+        default: out->button.button = IswButtonNone;     break;
+        }
+        out->button.modifiers = mods;
         out->button.x = e->event_x;
         out->button.y = e->event_y;
         out->button.root_x = e->root_x;

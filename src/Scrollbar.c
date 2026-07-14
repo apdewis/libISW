@@ -68,6 +68,7 @@ SOFTWARE.
 #include <ISW/ISWRender.h>
 #include <ISW/ScrollbarP.h>
 #include <ISW/ScrollWheel.h>
+#include <ISW/IswScroll.h>
 
 #include <stdint.h>
 #include <ISW/FocusMgrI.h>
@@ -76,9 +77,9 @@ SOFTWARE.
 /* Private definitions. */
 
 static char defaultTranslations[] =
-    "<Btn1Down>:   NotifyScroll()\n\
-     <Btn2Down>:   MoveThumb() NotifyThumb() \n\
-     <Btn3Down>:   NotifyScroll()\n\
+    "<PrimaryDown>:   NotifyScroll()\n\
+     <TertiaryDown>:   MoveThumb() NotifyThumb() \n\
+     <SecondaryDown>:   NotifyScroll()\n\
      <Btn1Motion>: HandleThumb() \n\
      <Btn3Motion>: HandleThumb() \n\
      <Btn2Motion>: MoveThumb() NotifyThumb() \n\
@@ -534,6 +535,28 @@ HandleThumb(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     }
 }
 
+/*
+ * Deliver a signed pixel delta to the scrollbar's scrollProc list as an
+ * IswScrollData payload along the bar's orientation axis.  Used by the
+ * scrollbar's own action procs (arrow-zone / line / page / autorepeat) so the
+ * scrollProc contract is uniform with the continuous scroll dispatcher, which
+ * also passes IswScrollData.
+ */
+static void
+CallScrollProc(Widget w, int pixels)
+{
+    ScrollbarWidget sbw = (ScrollbarWidget) w;
+    IswScrollData sd;
+
+    memset(&sd, 0, sizeof(sd));
+    sd.smooth = 0;
+    if (sbw->scrollbar.orientation == IswOrientVertical)
+        sd.dy = (float) pixels;
+    else
+        sd.dx = (float) pixels;
+    IswCallCallbacks(w, IswNscrollProc, (IswPointer) &sd);
+}
+
 static void
 RepeatNotify(IswPointer client_data, IswIntervalId *idp)
 {
@@ -547,7 +570,7 @@ RepeatNotify(IswPointer client_data, IswIntervalId *idp)
     call_data = MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
     if (sbw->scrollbar.scroll_mode == 1)
 	call_data = -call_data;
-    IswCallCallbacks((Widget)sbw, IswNscrollProc, (IswPointer) call_data);
+    CallScrollProc((Widget)sbw, (int) call_data);
     sbw->scrollbar.timer_id =
     IswAppAddTimeOut(IswWidgetToApplicationContext((Widget)sbw),
 		    (unsigned long) 150,
@@ -586,7 +609,7 @@ NotifyScroll (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     if (PICKLENGTH (sbw,x,y) < sbw->scrollbar.thickness) {
  /* handle first arrow zone */
  call_data = -MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
-	IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
+	CallScrollProc(w, (int) call_data);
 	/* establish autoscroll */
 	sbw->scrollbar.timer_id =
 	    IswAppAddTimeOut (IswWidgetToApplicationContext (w),
@@ -595,7 +618,7 @@ NotifyScroll (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     } else if (PICKLENGTH (sbw,x,y) > sbw->scrollbar.length - sbw->scrollbar.thickness) {
  /* handle last arrow zone */
  call_data = MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
- IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
+ CallScrollProc(w, (int) call_data);
 	/* establish autoscroll */
 	sbw->scrollbar.timer_id =
 	    IswAppAddTimeOut (IswWidgetToApplicationContext (w),
@@ -604,11 +627,11 @@ NotifyScroll (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     } else if (PICKLENGTH (sbw, x, y) < sbw->scrollbar.topLoc) {
  /* handle zone "above" the thumb */
  call_data = - sbw->scrollbar.length;
- IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
+ CallScrollProc(w, (int) call_data);
     } else if (PICKLENGTH (sbw, x, y) > sbw->scrollbar.topLoc + sbw->scrollbar.shownLength) {
  /* handle zone "below" the thumb */
  call_data = sbw->scrollbar.length;
- IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
+ CallScrollProc(w, (int) call_data);
     } else
 	{
 	/* handle the thumb in the motion notify action */
@@ -648,7 +671,7 @@ ScrollLineForward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = LineDelta(sbw);
     (void)p; (void)np;
-    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+    CallScrollProc(w, (int) cd);
 }
 
 static void
@@ -657,7 +680,7 @@ ScrollLineBackward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = -LineDelta(sbw);
     (void)p; (void)np;
-    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+    CallScrollProc(w, (int) cd);
 }
 
 static void
@@ -666,7 +689,7 @@ ScrollPageForward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = PageDelta(sbw);
     (void)p; (void)np;
-    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+    CallScrollProc(w, (int) cd);
 }
 
 static void
@@ -675,7 +698,7 @@ ScrollPageBackward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = -PageDelta(sbw);
     (void)p; (void)np;
-    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+    CallScrollProc(w, (int) cd);
 }
 
 static void

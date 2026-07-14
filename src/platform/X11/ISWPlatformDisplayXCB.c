@@ -104,6 +104,7 @@ xcb_disp_open(const char *display_name, int *default_screen)
         memset(xcbDisplay, 0, sizeof(*xcbDisplay));
         xcbDisplay->conn = conn;
         _IswXcbAllocWWTable((IswDisplay) xcbDisplay);
+        _IswXcbInputInit((IswDisplay) xcbDisplay);
         return (IswDisplay) xcbDisplay;
     } else {
         return (IswDisplay) NULL;
@@ -114,6 +115,7 @@ static void
 xcb_disp_close(IswDisplay dpy)
 {
     IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    _IswXcbInputFree(dpy);
     _IswXcbFreeWWTable(dpy);
     if (priv->conn) {
         if (priv->blit_gc)
@@ -396,9 +398,15 @@ xcb_win_create(IswDisplay dpy, IswWindow parent,
     if (!priv->conn || !s)
         return _IswXcbWindowWrap(0);
 
-    return _IswXcbWindowWrap(
-        xcb_create_window_full(priv->conn, s, _IswXcbWindow(parent),
-                               geom, attrs, window_class));
+    {
+        xcb_window_t id = xcb_create_window_full(priv->conn, s,
+                                _IswXcbWindow(parent), geom, attrs,
+                                window_class);
+        /* Request XI2 button/motion on every realized window (including
+           transient popups/menus) so smooth scroll arrives everywhere. */
+        _IswXcbInputSelectForWindow(dpy, id);
+        return _IswXcbWindowWrap(id);
+    }
 }
 
 static void

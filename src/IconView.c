@@ -86,9 +86,9 @@ static void BandUpdateSelection(IconViewWidget);
 static void ScrollToCursor(IconViewWidget);
 
 static char defaultTranslations[] =
-    "<Btn1Down>: SelectItem()\n"
+    "<PrimaryDown>: SelectItem()\n"
     "<Btn1Motion>: BandDrag()\n"
-    "<Btn1Up>: BandFinish()\n"
+    "<PrimaryUp>: BandFinish()\n"
     "Ctrl<Key>a: SelectAll()\n"
     "Shift<Key>Left: ExtendSelection(left)\n"
     "Shift<Key>Right: ExtendSelection(right)\n"

@@ -91,9 +91,9 @@ static void SelectAll(Widget, IswEvent *, String *, Cardinal *);
 static void HandleFocus(Widget, IswEvent *, String *, Cardinal *);
 
 static char defaultTranslations[] =
-    "<Btn1Down>: SelectRow()\n"
+    "<PrimaryDown>: SelectRow()\n"
     "<Btn1Motion>: BandDrag()\n"
-    "<Btn1Up>: BandFinish()\n"
+    "<PrimaryUp>: BandFinish()\n"
     "<Motion>: TrackMotion()\n"
     "Ctrl<Key>a: SelectAll()\n"
     "Shift<Key>Up: ExtendSelection(up)\n"

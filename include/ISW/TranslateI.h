@@ -425,6 +425,12 @@ extern Boolean _IswMatchProtocolName(
     TMEventPtr		/* eventSeq */
 );
 
+extern Boolean _IswMatchScroll(
+    TMTypeMatch		/* typeMatch */,
+    TMModifierMatch	/* modMatch */,
+    TMEventPtr		/* eventSeq */
+);
+
 extern void _IswTranslateEvent(
     Widget		/* widget */,
     IswEvent*		/* event */

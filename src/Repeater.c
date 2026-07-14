@@ -59,8 +59,8 @@ static void tic(IswPointer, IswIntervalId *);	/* clock timeout */
 static char defaultTranslations[] =
   "<EnterWindow>:     highlight() \n\
    <LeaveWindow>:     unhighlight() \n\
-   <Btn1Down>:        set() start() \n\
-   <Btn1Up>:          stop() unset() ";
+   <PrimaryDown>:        set() start() \n\
+   <PrimaryUp>:          stop() unset() ";
 
 
 /*

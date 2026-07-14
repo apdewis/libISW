@@ -143,6 +143,14 @@ _IswDescaleEventCoords(IswEvent *event, double sf)
         event->motion.shell_x = (int16_t)(event->motion.shell_x * inv);
         event->motion.shell_y = (int16_t)(event->motion.shell_y * inv);
         break;
+    case IswScroll:
+        event->scroll.x = (int32_t)(event->scroll.x * inv);
+        event->scroll.y = (int32_t)(event->scroll.y * inv);
+        event->scroll.root_x = (int16_t)(event->scroll.root_x * inv);
+        event->scroll.root_y = (int16_t)(event->scroll.root_y * inv);
+        event->scroll.shell_x = (int16_t)(event->scroll.shell_x * inv);
+        event->scroll.shell_y = (int16_t)(event->scroll.shell_y * inv);
+        break;
     case IswEnter:
     case IswLeave:
         event->crossing.x = (int32_t)(event->crossing.x * inv);
@@ -1146,6 +1154,10 @@ _IswEventPointerXY(IswEvent *event, int *x, int *y)
         *x = event->motion.x;
         *y = event->motion.y;
         return True;
+    case IswScroll:
+        *x = event->scroll.x;
+        *y = event->scroll.y;
+        return True;
     case IswEnter:
     case IswLeave:
         *x = event->crossing.x;
@@ -1445,8 +1457,9 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
     Boolean was_dispatched = False;
     DPY_TO_APPCON(dpy);
 
-    /* HiDPI: convert physical event coordinates to logical pixels */
-    _IswDescaleEventCoords(event, _IswGetScaleFactor(dpy));
+    /* HiDPI descale now happens in IswDispatchEvent before the dispatcher is
+       selected, so a custom dispatcher (e.g. the IswScroll dispatcher) sees
+       logical coordinates and must NOT re-descale. */
 
     LOCK_APP(app);
 
@@ -1605,7 +1618,8 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                for crossing synthesis so the grabbed widget still sees
                Enter/Leave as the pointer moves in and out of its bounds. */
             Widget hitTarget = target;
-            if ((etype == IswMotion || etype == IswButtonUp) &&
+            if ((etype == IswMotion || etype == IswButtonUp ||
+                 etype == IswScroll) &&
                 pdi->buttonsDown != 0 &&
                 pdi->windowlessButtonGrab != NULL &&
                 IswIsWidget(pdi->windowlessButtonGrab) &&
@@ -1794,6 +1808,13 @@ IswDispatchEvent(IswEvent *event, IswDisplay dpy)
     if (is_user_input)
         _IswShellUpdateUserTime(dpy, (Widget) (void *) event->any.target, time);
     pd->last_event = *event;
+
+    /* HiDPI: descale physical event coordinates to logical pixels BEFORE the
+       dispatcher is selected, so both the default dispatcher and any custom
+       dispatcher (e.g. IswScroll) see logical coordinates.  This runs once per
+       real event from the event loop; synthesized events bypass IswDispatchEvent
+       and are built from already-logical coordinates. */
+    _IswDescaleEventCoords(event, _IswGetScaleFactor(dpy));
 
     if (pd->dispatcher_list) {
         /* Index by neutral kind; clamp to the 128-entry dispatcher_list. */

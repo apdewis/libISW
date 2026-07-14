@@ -63,6 +63,7 @@ typedef enum {
     IswKeyUp,
     IswButtonDown,
     IswButtonUp,
+    IswScroll,          /* continuous/discrete scroll axis                 */
     IswMotion,
     IswEnter,
     IswLeave,
@@ -145,17 +146,37 @@ typedef enum {
     IswNotifyPointerRoot
 } IswNotifyDetail;
 
-/* Logical button identity. */
+/* Logical button identity.  Scroll is no longer a button — it is a
+ * first-class continuous axis carried by the IswScroll event kind.  The
+ * numeric values are the SEMANTIC roles (Primary=1, Secondary=2, Tertiary=3),
+ * not the historical X11 physical-button order.  The XCB backend remaps raw
+ * detail 1->Primary, 2->Tertiary, 3->Secondary so widget code branches on
+ * role, not on which physical button a device happens to use. */
 typedef enum {
-    IswButtonNone   = 0,
-    IswButtonLeft   = 1,
-    IswButtonMiddle = 2,
-    IswButtonRight  = 3,
-    IswButtonWheelUp    = 4,
-    IswButtonWheelDown  = 5,
-    IswButtonWheelLeft  = 6,
-    IswButtonWheelRight = 7
+    IswButtonNone      = 0,
+    IswButtonPrimary   = 1,
+    IswButtonSecondary = 2,
+    IswButtonTertiary  = 3
 } IswButton;
+/* Back-compat aliases for in-flight widget code.  These map by NAME onto the
+ * semantic roles, so IswButtonMiddle is Tertiary (3) and IswButtonRight is
+ * Secondary (2) — note the 2<->3 swap vs. the old numeric values. */
+#define IswButtonLeft   IswButtonPrimary
+#define IswButtonMiddle IswButtonTertiary
+#define IswButtonRight  IswButtonSecondary
+
+/* Scroll direction / axis vocabulary used by the translation manager to
+ * match a parsed scroll name (<ScrollUp>, <ScrollY>, ...) against a scroll
+ * event's sign/axis.  Carried as the TM eventCode for an IswScroll entry. */
+typedef enum {
+    IswScrollAny  = 0,
+    IswScrollUp,
+    IswScrollDown,
+    IswScrollLeft,
+    IswScrollRight,
+    IswScrollAxisY,
+    IswScrollAxisX
+} IswScrollDir;
 
 /*
  * -----------------------------------------------------------------------
@@ -230,6 +251,23 @@ typedef struct {
     int16_t     root_x, root_y;
     int16_t     shell_x, shell_y;
 } IswButtonEvent;
+
+/* Scroll axis event (continuous / discrete).  delta_x/delta_y is the
+ * continuous sub-pixel pixel delta (negative = up/left).  discrete_x/y is
+ * the signed click-wheel step count (one notch = +/-1).  smooth is 1 when
+ * the source is a continuous valuator (trackpad), 0 for a discrete wheel.
+ * x/y is the pointer position (incidental — scroll does not move the
+ * pointer); widget-local logical px. */
+typedef struct {
+    ISW_EVENT_HEADER;
+    uint16_t    modifiers;
+    int32_t     x, y;            /* widget-local logical px */
+    int16_t     root_x, root_y;
+    int16_t     shell_x, shell_y;
+    float       delta_x, delta_y;        /* continuous pixel delta (sub-pixel) */
+    int32_t     discrete_x, discrete_y;  /* signed click-wheel steps */
+    uint8_t     smooth;                 /* 1 = continuous source, 0 = discrete */
+} IswScrollEvent;
 
 /* Pointer motion. */
 typedef struct {
@@ -326,6 +364,7 @@ typedef union _IswEvent {
     IswAnyEvent       any;
     IswKeyEvent       key;
     IswButtonEvent    button;
+    IswScrollEvent    scroll;
     IswMotionEvent    motion;
     IswCrossingEvent  crossing;
     IswFocusEvent     focus;
@@ -354,6 +393,7 @@ static inline int32_t IswEventX(const IswEvent *e)
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.x;
     case IswButtonDown: case IswButtonUp:     return e->button.x;
+    case IswScroll:                           return e->scroll.x;
     case IswMotion:                           return e->motion.x;
     case IswEnter: case IswLeave:             return e->crossing.x;
     default:                                  return 0;
@@ -365,6 +405,7 @@ static inline int32_t IswEventY(const IswEvent *e)
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.y;
     case IswButtonDown: case IswButtonUp:     return e->button.y;
+    case IswScroll:                           return e->scroll.y;
     case IswMotion:                           return e->motion.y;
     case IswEnter: case IswLeave:             return e->crossing.y;
     default:                                  return 0;
@@ -377,6 +418,7 @@ static inline int16_t IswEventRootX(const IswEvent *e)
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.root_x;
     case IswButtonDown: case IswButtonUp:     return e->button.root_x;
+    case IswScroll:                           return e->scroll.root_x;
     case IswMotion:                           return e->motion.root_x;
     case IswEnter: case IswLeave:             return e->crossing.root_x;
     default:                                  return 0;
@@ -388,6 +430,7 @@ static inline int16_t IswEventRootY(const IswEvent *e)
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.root_y;
     case IswButtonDown: case IswButtonUp:     return e->button.root_y;
+    case IswScroll:                           return e->scroll.root_y;
     case IswMotion:                           return e->motion.root_y;
     case IswEnter: case IswLeave:             return e->crossing.root_y;
     default:                                  return 0;
@@ -401,6 +444,7 @@ static inline int16_t IswEventShellX(const IswEvent *e)
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.shell_x;
     case IswButtonDown: case IswButtonUp:     return e->button.shell_x;
+    case IswScroll:                           return e->scroll.shell_x;
     case IswMotion:                           return e->motion.shell_x;
     case IswEnter: case IswLeave:             return e->crossing.shell_x;
     default:                                  return 0;
@@ -412,6 +456,7 @@ static inline int16_t IswEventShellY(const IswEvent *e)
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.shell_y;
     case IswButtonDown: case IswButtonUp:     return e->button.shell_y;
+    case IswScroll:                           return e->scroll.shell_y;
     case IswMotion:                           return e->motion.shell_y;
     case IswEnter: case IswLeave:             return e->crossing.shell_y;
     default:                                  return 0;
@@ -424,6 +469,7 @@ static inline uint16_t IswEventModifiers(const IswEvent *e)
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:       return e->key.modifiers;
     case IswButtonDown: case IswButtonUp: return e->button.modifiers;
+    case IswScroll:                       return e->scroll.modifiers;
     case IswMotion:                       return e->motion.modifiers;
     case IswEnter: case IswLeave:         return e->crossing.modifiers;
     default:                              return 0;
@@ -435,6 +481,31 @@ static inline uint8_t IswEventButton(const IswEvent *e)
 {
     return (e->kind == IswButtonDown || e->kind == IswButtonUp)
            ? e->button.button : (uint8_t) IswButtonNone;
+}
+
+/* Scroll axis accessors.  delta_x/delta_y is the continuous sub-pixel pixel
+ * delta (negative = up/left); discrete_x/y is the signed click-wheel step
+ * count; smooth is 1 for a continuous source.  All return 0 for non-scroll
+ * events. */
+static inline float IswEventScrollDeltaX(const IswEvent *e)
+{
+    return (e->kind == IswScroll) ? e->scroll.delta_x : 0.0f;
+}
+static inline float IswEventScrollDeltaY(const IswEvent *e)
+{
+    return (e->kind == IswScroll) ? e->scroll.delta_y : 0.0f;
+}
+static inline int32_t IswEventScrollDiscreteX(const IswEvent *e)
+{
+    return (e->kind == IswScroll) ? e->scroll.discrete_x : 0;
+}
+static inline int32_t IswEventScrollDiscreteY(const IswEvent *e)
+{
+    return (e->kind == IswScroll) ? e->scroll.discrete_y : 0;
+}
+static inline uint8_t IswEventScrollSmooth(const IswEvent *e)
+{
+    return (e->kind == IswScroll) ? e->scroll.smooth : 0;
 }
 
 /*

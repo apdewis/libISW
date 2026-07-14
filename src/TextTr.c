@@ -65,11 +65,11 @@ Shift<Key>End:	end-of-file() \n\
 <LeaveWindow>:	leave-window() \n\
 <FocusIn>:	focus-in() \n\
 <FocusOut>:	focus-out() \n\
-<Btn1Down>:	select-start() \n\
+<PrimaryDown>:	select-start() \n\
 <Btn1Motion>:	extend-adjust() \n\
-<Btn1Up>:	extend-end(PRIMARY, CLIPBOARD) \n\
-<Btn2Down>:	insert-selection(PRIMARY, CLIPBOARD) \n\
-<Btn3Down>:	extend-start() \n\
+<PrimaryUp>:	extend-end(PRIMARY, CLIPBOARD) \n\
+<TertiaryDown>:	insert-selection(PRIMARY, CLIPBOARD) \n\
+<SecondaryDown>:	extend-start() \n\
 <Btn3Motion>:	extend-adjust() \n\
-<Btn3Up>:	extend-end(PRIMARY, CLIPBOARD) \n\
+<SecondaryUp>:	extend-end(PRIMARY, CLIPBOARD) \n\
 ";

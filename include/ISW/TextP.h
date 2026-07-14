@@ -218,6 +218,11 @@ typedef struct _TextPart {
     int		    top_line;		/* source-line index of top_line_anchor. */
     ISWTextPosition  top_line_anchor;	/* position to which top_line applies. */
     Boolean	    top_line_valid;	/* is top_line/top_line_anchor current? */
+
+    /* Sub-pixel scroll accumulation: continuous (trackpad) scroll delivers
+       fractional pixel deltas; accumulate the remainder so motion stays
+       pixel-accurate instead of quantizing to whole lines per event. */
+    float	    scroll_accum_x, scroll_accum_y;
 } TextPart;
 
 /*************************************************************

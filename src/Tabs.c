@@ -34,7 +34,7 @@
  ****************************************************************/
 
 static char defaultTranslations[] =
-    "<Btn1Down>: TabSelect()";
+    "<PrimaryDown>: TabSelect()";
 
 static void TabSelect(Widget, IswEvent *, String *, Cardinal *);
 

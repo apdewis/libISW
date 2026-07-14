@@ -85,8 +85,8 @@ static char menuBarMenuTranslations[] =
      <LeaveWindow>:     unhighlight()           \n\
      <Motion>:          highlight()             \n\
      <BtnMotion>:       highlight()             \n\
-     <Btn4Down>:        unhighlight() popdown() \n\
-     <Btn5Down>:        unhighlight() popdown() \n\
+     <ScrollUp>:        unhighlight() popdown() \n\
+     <ScrollDown>:      unhighlight() popdown() \n\
      <BtnDown>:         notify() unhighlight() popdown() \n\
      <Key>Left:         menubar-nav-left()      \n\
      <Key>Right:        menubar-nav-right()";

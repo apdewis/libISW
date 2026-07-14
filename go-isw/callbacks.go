@@ -19,6 +19,9 @@ typedef struct {
 	int16_t root_x, root_y;
 	int16_t shell_x, shell_y;
 	uint8_t button;
+	float scroll_delta_x, scroll_delta_y;
+	int32_t scroll_discrete_x, scroll_discrete_y;
+	uint8_t scroll_smooth;
 	int notify_mode;
 	int notify_detail;
 	int focus_source;
@@ -216,6 +219,22 @@ func flatToEvent(flat *C.IswEventFlat) Event {
 			RootY:     int16(flat.root_y),
 			ShellX:    int16(flat.shell_x),
 			ShellY:    int16(flat.shell_y),
+		}
+	case Scroll:
+		return &ScrollEvent{
+			EventBase: base,
+			Modifiers: uint16(flat.modifiers),
+			X:         int32(flat.x),
+			Y:         int32(flat.y),
+			RootX:     int16(flat.root_x),
+			RootY:     int16(flat.root_y),
+			ShellX:    int16(flat.shell_x),
+			ShellY:    int16(flat.shell_y),
+			DeltaX:    float32(flat.scroll_delta_x),
+			DeltaY:    float32(flat.scroll_delta_y),
+			DiscreteX: int32(flat.scroll_discrete_x),
+			DiscreteY: int32(flat.scroll_discrete_y),
+			Smooth:    flat.scroll_smooth != 0,
 		}
 	case Motion:
 		return &MotionEvent{

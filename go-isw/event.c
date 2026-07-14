@@ -17,6 +17,10 @@ typedef struct {
 
 	uint8_t button;
 
+	float scroll_delta_x, scroll_delta_y;
+	int32_t scroll_discrete_x, scroll_discrete_y;
+	uint8_t scroll_smooth;
+
 	int notify_mode;
 	int notify_detail;
 	int focus_source;
@@ -67,6 +71,20 @@ void isw_event_flatten(const IswEvent *e, IswEventFlat *out) {
 		out->root_y    = e->button.root_y;
 		out->shell_x   = e->button.shell_x;
 		out->shell_y   = e->button.shell_y;
+		break;
+	case IswScroll:
+		out->modifiers = e->scroll.modifiers;
+		out->x         = e->scroll.x;
+		out->y         = e->scroll.y;
+		out->root_x    = e->scroll.root_x;
+		out->root_y    = e->scroll.root_y;
+		out->shell_x   = e->scroll.shell_x;
+		out->shell_y   = e->scroll.shell_y;
+		out->scroll_delta_x   = e->scroll.delta_x;
+		out->scroll_delta_y   = e->scroll.delta_y;
+		out->scroll_discrete_x = e->scroll.discrete_x;
+		out->scroll_discrete_y = e->scroll.discrete_y;
+		out->scroll_smooth    = e->scroll.smooth;
 		break;
 	case IswMotion:
 		out->modifiers = e->motion.modifiers;

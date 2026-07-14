@@ -504,6 +504,61 @@ _IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
     return _IswMatchUsingStandardMods(typeMatch, modMatch, eventSeq);
 }
 
+/* Scroll-axis match: the table's eventCode is an IswScrollDir; the event's
+   sign/axis is read straight from the backing IswEvent (eventSeq->iswev) so a
+   smooth trackpad event with sub-pixel delta matches <ScrollUp>/<ScrollY> by
+   sign, not by a lossy derived code.  Modifier handling mirrors the regular
+   matcher. */
+Boolean
+_IswMatchScroll(TMTypeMatch typeMatch,
+                TMModifierMatch modMatch,
+                TMEventPtr eventSeq)
+{
+    IswScrollDir want = (IswScrollDir) typeMatch->eventCode;
+    IswEvent *ev = eventSeq->iswev;
+    Modifiers computed = 0;
+    Modifiers computedMask = 0;
+    Boolean resolved = TRUE;
+    Boolean match = FALSE;
+
+    if (ev == NULL || ev->kind != IswScroll)
+        return FALSE;
+
+    {
+        int32_t dx = ev->scroll.discrete_x;
+        int32_t dy = ev->scroll.discrete_y;
+        float fdx = ev->scroll.delta_x;
+        float fdy = ev->scroll.delta_y;
+        Boolean has_y = (dy != 0 || fdy != 0.0f);
+        Boolean has_x = (dx != 0 || fdx != 0.0f);
+
+        switch (want) {
+        case IswScrollAny:  match = has_y || has_x;            break;
+        case IswScrollUp:   match = (dy < 0 || fdy < 0.0f);    break;
+        case IswScrollDown: match = (dy > 0 || fdy > 0.0f);    break;
+        case IswScrollLeft: match = (dx < 0 || fdx < 0.0f);    break;
+        case IswScrollRight:match = (dx > 0 || fdx > 0.0f);    break;
+        case IswScrollAxisY:match = has_y;                     break;
+        case IswScrollAxisX:match = has_x;                     break;
+        default:            match = FALSE;                      break;
+        }
+    }
+    if (!match)
+        return FALSE;
+
+    if (modMatch->lateModifiers != NULL)
+        resolved = _IswComputeLateBindings(eventSeq->dpy,
+                                           modMatch->lateModifiers,
+                                           &computed, &computedMask);
+    if (!resolved)
+        return FALSE;
+    computed = (Modifiers) (computed | modMatch->modifiers);
+    computedMask = (Modifiers) (computedMask | modMatch->modifierMask);
+
+    return ((computed & computedMask) ==
+            (eventSeq->event.modifiers & computedMask));
+}
+
 
 #define IsOn(vec,idx) ((vec)[(idx)>>3] & (1 << ((idx) & 7)))
 
@@ -560,6 +615,24 @@ IswEventToTMEvent(IswEvent *ev, TMEventPtr tmEvent)
         tmEvent->event.eventCode = ev->button.button;
         tmEvent->event.modifiers = ev->button.modifiers;
         break;
+    case IswScroll: {
+        IswScrollDir d = IswScrollAny;
+        if (ev->scroll.discrete_y < 0 || ev->scroll.delta_y < 0.0f)
+            d = IswScrollUp;
+        else if (ev->scroll.discrete_y > 0 || ev->scroll.delta_y > 0.0f)
+            d = IswScrollDown;
+        else if (ev->scroll.discrete_x < 0 || ev->scroll.delta_x < 0.0f)
+            d = IswScrollLeft;
+        else if (ev->scroll.discrete_x > 0 || ev->scroll.delta_x > 0.0f)
+            d = IswScrollRight;
+        else if (ev->scroll.delta_y != 0.0f || ev->scroll.discrete_y != 0)
+            d = IswScrollAxisY;
+        else if (ev->scroll.delta_x != 0.0f || ev->scroll.discrete_x != 0)
+            d = IswScrollAxisX;
+        tmEvent->event.eventCode = (TMLongCard) d;
+        tmEvent->event.modifiers = ev->scroll.modifiers;
+        break;
+    }
     case IswMotion:
         /* No Hint distinction in the neutral model — motion detail is
            always "Normal". */

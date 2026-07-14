@@ -45,10 +45,10 @@ extern double atof(char *);
 
 #if IswVersion >= 11006
 static char defaultTranslations[] =
-  "<Btn1Down>:    start() \n\
+  "<PrimaryDown>:    start() \n\
    <Btn1Motion>:  move() \n\
-   <Btn1Up>:      notify() stop() \n\
-   <Btn2Down>:    abort() \n\
+   <PrimaryUp>:      notify() stop() \n\
+   <TertiaryDown>:    abort() \n\
    :<Key>KP_Enter: set(rubberband,toggle) \n\
    <Key>space:    page(+1p,+1p) \n\
    <Key>Delete:   page(-1p,-1p) \n\
@@ -66,10 +66,10 @@ static char defaultTranslations[] =
    :<Key>KP_Home:  page(0,0)";
 #else
 static char defaultTranslations[] =
-  "<Btn1Down>:    start() \n\
+  "<PrimaryDown>:    start() \n\
    <Btn1Motion>:  move() \n\
-   <Btn1Up>:      notify() stop() \n\
-   <Btn2Down>:    abort() \n\
+   <PrimaryUp>:      notify() stop() \n\
+   <TertiaryDown>:    abort() \n\
    <Key>KP_Enter: set(rubberband,toggle) \n\
    <Key>space:    page(+1p,+1p) \n\
    <Key>Delete:   page(-1p,-1p) \n\
