@@ -163,6 +163,7 @@ PrintEventType(TMStringBuf sb, unsigned long event)
             PRINTEVENT(IswKeyUp, "<KeyRelease>")
             PRINTEVENT(IswButtonDown, "<ButtonPress>")
             PRINTEVENT(IswButtonUp, "<ButtonRelease>")
+            PRINTEVENT(IswScroll, "<Scroll>")
             PRINTEVENT(IswMotion, "<MotionNotify>")
             PRINTEVENT(IswEnter, "<EnterNotify>")
             PRINTEVENT(IswLeave, "<LeaveNotify>")
@@ -281,6 +282,22 @@ PrintEvent(TMStringBuf sb,
             memcpy(sb->current, name, len);
             sb->current[len] = '\0';
             sb->current += len;
+        }
+        break;
+    }
+
+    case IswScroll: {
+        /* The eventCode is an IswScrollDir; print the canonical direction
+           name so a round-tripped table reads <ScrollUp>/<ScrollY>/... */
+        static const char *const dirNames[] = {
+            "", "Up", "Down", "Left", "Right", "Y", "X"
+        };
+        unsigned d = (unsigned) typeMatch->eventCode;
+        const char *dn = (d < IswNumber(dirNames)) ? dirNames[d] : NULL;
+        if (dn != NULL && *dn != '\0') {
+            ExpandToFit(sb, dn);
+            strcpy(sb->current, dn);
+            sb->current += strlen(sb->current);
         }
         break;
     }

@@ -261,6 +261,13 @@ static EventKey events[] = {
 {"Btn3Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton3},
 {"Btn4Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton4},
 {"Btn5Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton5},
+/* Canonical semantic motion aliases.  These map by NAME onto the physical
+   button modifier bits (wire layout, unchanged): Primary=button1, Tertiary
+   (middle)=button2, Secondary (right)=button3 — note the 2<->3 swap vs. the
+   old Btn2/Btn3 numeric order, matching the Down/Up aliases. */
+{"PrimaryMotion",   ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton1},
+{"TertiaryMotion",  ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton2},
+{"SecondaryMotion", ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton3},
 
 {"EnterNotify",     ISW_NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
 {"Enter",           ISW_NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
@@ -1059,8 +1066,19 @@ ParseProtocolName(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean 
     return str;
 }
 
+/* Maps an IswButton semantic role to the physical button modifier bit that
+   is held while that button is down.  Indexed by IswButton value (1..3):
+   Primary=physical button1, Tertiary(middle)=button2, Secondary(right)=button3.
+   Note the 2<->3 swap vs. the raw enum order: IswButtonSecondary=2 maps to
+   ModButton3, IswButtonTertiary=3 maps to ModButton2.  Buttons 4/5 (extra)
+   keep their physical bits; scroll (no longer a button) never indexes here. */
 static ModifierMask buttonModifierMasks[] = {
-    0, IswModButton1, IswModButton2, IswModButton3, IswModButton4, IswModButton5
+    0,                                  /* IswButtonNone      = 0 */
+    IswModButton1,                      /* IswButtonPrimary   = 1 */
+    IswModButton3,                      /* IswButtonSecondary = 2 (right)  */
+    IswModButton2,                      /* IswButtonTertiary  = 3 (middle) */
+    IswModButton4,                      /* extra button 4     */
+    IswModButton5                       /* extra button 5     */
 };
 
 static String ParseRepeat(String, int *, Boolean *, Boolean *);

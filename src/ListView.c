@@ -92,7 +92,7 @@ static void HandleFocus(Widget, IswEvent *, String *, Cardinal *);
 
 static char defaultTranslations[] =
     "<PrimaryDown>: SelectRow()\n"
-    "<Btn1Motion>: BandDrag()\n"
+    "<PrimaryMotion>: BandDrag()\n"
     "<PrimaryUp>: BandFinish()\n"
     "<Motion>: TrackMotion()\n"
     "Ctrl<Key>a: SelectAll()\n"

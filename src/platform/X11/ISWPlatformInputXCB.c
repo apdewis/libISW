@@ -563,6 +563,19 @@ _IswXcbInputTranslateEvent(IswDisplay dpy, xcb_generic_event_t *xev,
         out->scroll.delta_y = dy;
         out->scroll.discrete_x = 0;
         out->scroll.discrete_y = 0;
+        /* Heap-copy the full XI event into the native escape hatch.  XI events
+           carry variable-length valuator/button-mask data beyond the fixed
+           32-byte xcb_generic_event_t header, so the copy must be the full
+           wire size (32 + 4*length), NOT the fixed 32 the protocol-event path
+           uses — a 32-byte copy would truncate the valuator report any native
+           consumer (IswEventNative) needs.  The dispatch core frees this. */
+        
+        uint32_t full = 32u + 4u * (uint32_t) xev->full_sequence;
+        void *copy = __IswMalloc(full);
+        if (copy != NULL)
+            memcpy(copy, xev, full);
+        out->any.native = copy;
+        
         return True;
     }
     default:

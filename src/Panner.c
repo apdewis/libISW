@@ -46,7 +46,7 @@ extern double atof(char *);
 #if IswVersion >= 11006
 static char defaultTranslations[] =
   "<PrimaryDown>:    start() \n\
-   <Btn1Motion>:  move() \n\
+   <PrimaryMotion>:  move() \n\
    <PrimaryUp>:      notify() stop() \n\
    <TertiaryDown>:    abort() \n\
    :<Key>KP_Enter: set(rubberband,toggle) \n\
@@ -67,7 +67,7 @@ static char defaultTranslations[] =
 #else
 static char defaultTranslations[] =
   "<PrimaryDown>:    start() \n\
-   <Btn1Motion>:  move() \n\
+   <PrimaryMotion>:  move() \n\
    <PrimaryUp>:      notify() stop() \n\
    <TertiaryDown>:    abort() \n\
    <Key>KP_Enter: set(rubberband,toggle) \n\

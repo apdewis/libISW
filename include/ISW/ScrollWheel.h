@@ -1,16 +1,28 @@
 /*
- * ScrollWheel.h - Scroll wheel support for ISW widgets
+ * ScrollWheel.h - Continuous scroll-axis dispatch for ISW widgets
  *
- * Intercepts scroll wheel events (X11 buttons 4-7) and routes them
- * to the appropriate scrollbar by walking up the widget tree from
- * the pointer position to find the nearest scrollable ancestor
- * (Viewport, Text, or standalone Scrollbar).
+ * Installs a custom IswEventDispatchProc for the IswScroll event kind.
+ * When a scroll event arrives — continuous trackpad motion (sub-pixel
+ * delta_x/delta_y, smooth=1) or a discrete wheel notch (discrete_x/y = +/-1,
+ * smooth=0) — the dispatcher walks up the widget tree from the pointer target
+ * to find the nearest scrollable container (Viewport, Text, or a standalone
+ * Scrollbar) and forwards it as a scrollProc callback carrying an
+ * IswScrollData payload (see IswScroll.h).
  *
- * The scroll increment is controlled by the scrollWheelIncrement
- * resource on individual Scrollbar widgets (default 50 pixels).
+ * Discrete-to-pixel scaling: a discrete wheel step is scaled by the target
+ * Scrollbar's scrollWheelIncrement resource (default
+ * ISW_SCROLL_WHEEL_DEFAULT_INCREMENT) into the pixel delta passed to
+ * scrollProc, so the per-scrollbar increment still governs wheel speed.
+ * Smooth (continuous) scrolls pass delta_x/delta_y through unchanged — the
+ * increment resource is irrelevant for smooth input.
  *
- * Shift+scroll switches to horizontal scrolling.
- * Buttons 6/7 (horizontal wheel) always scroll horizontally.
+ * Scroll stickiness: once a scrollable container is targeted, subsequent
+ * scroll events within ISW_SCROLL_STICKY_MS continue scrolling the same
+ * container even if the pointer has moved over a different scrollable.
+ *
+ * Shift+vertical-wheel switches to the horizontal axis (legacy behaviour,
+ * applied in the XCB backend).  Buttons 6/7 (horizontal wheel) scroll
+ * horizontally.
  */
 
 #ifndef _ISW_ScrollWheel_h

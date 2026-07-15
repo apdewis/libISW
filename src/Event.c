@@ -1386,6 +1386,7 @@ _IswConvertKindToMask(IswEventKind kind)
     case IswKeyUp:          return IswKeyReleaseMask;
     case IswButtonDown:     return IswButtonPressMask;
     case IswButtonUp:       return IswButtonReleaseMask;
+    case IswScroll:         return NonMaskableMask; /* dispatched, not mask-selected */
     case IswMotion:         return IswPointerMotionMask |
                                    IswPointerMotionHintMask |
                                    IswButton1MotionMask | IswButton2MotionMask |
@@ -1675,7 +1676,11 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                hit-test result (hitTarget) so the grabbed widget receives
                crossing events as the pointer moves in and out of its
                bounds — the grab redirects the dispatch target but must
-               not suppress the widget's knowledge of pointer presence. */
+               not suppress the widget's knowledge of pointer presence.
+               IswScroll is deliberately excluded: a scroll event's pointer
+               position is incidental (scroll does not move the pointer), so
+               synthesizing enter/leave from it would spuriously flip
+               pointerWidget.  (Plan Task 4.) */
             if (etype == IswMotion) {
                 Widget crossTarget =
                     (hitTarget != widget && IswIsWidget(hitTarget)

@@ -66,10 +66,10 @@ Shift<Key>End:	end-of-file() \n\
 <FocusIn>:	focus-in() \n\
 <FocusOut>:	focus-out() \n\
 <PrimaryDown>:	select-start() \n\
-<Btn1Motion>:	extend-adjust() \n\
+<PrimaryMotion>:	extend-adjust() \n\
 <PrimaryUp>:	extend-end(PRIMARY, CLIPBOARD) \n\
 <TertiaryDown>:	insert-selection(PRIMARY, CLIPBOARD) \n\
 <SecondaryDown>:	extend-start() \n\
-<Btn3Motion>:	extend-adjust() \n\
+<SecondaryMotion>:	extend-adjust() \n\
 <SecondaryUp>:	extend-end(PRIMARY, CLIPBOARD) \n\
 ";

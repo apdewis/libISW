@@ -80,9 +80,9 @@ static char defaultTranslations[] =
     "<PrimaryDown>:   NotifyScroll()\n\
      <TertiaryDown>:   MoveThumb() NotifyThumb() \n\
      <SecondaryDown>:   NotifyScroll()\n\
-     <Btn1Motion>: HandleThumb() \n\
-     <Btn3Motion>: HandleThumb() \n\
-     <Btn2Motion>: MoveThumb() NotifyThumb() \n\
+     <PrimaryMotion>: HandleThumb() \n\
+     <SecondaryMotion>: HandleThumb() \n\
+     <TertiaryMotion>: MoveThumb() NotifyThumb() \n\
      <BtnUp>:      EndScroll()\n\
      <Key>Up:      ScrollLineBackward()\n\
      <Key>Down:    ScrollLineForward()\n\

@@ -87,7 +87,7 @@ static void ScrollToCursor(IconViewWidget);
 
 static char defaultTranslations[] =
     "<PrimaryDown>: SelectItem()\n"
-    "<Btn1Motion>: BandDrag()\n"
+    "<PrimaryMotion>: BandDrag()\n"
     "<PrimaryUp>: BandFinish()\n"
     "Ctrl<Key>a: SelectAll()\n"
     "Shift<Key>Left: ExtendSelection(left)\n"

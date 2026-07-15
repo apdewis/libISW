@@ -106,7 +106,7 @@ typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
 
 static char defGripTranslations[] =
     "<PrimaryDown>:		GripAction(Start) \n\
-     <Btn1Motion>:		GripAction(Move) \n\
+     <PrimaryMotion>:		GripAction(Move) \n\
      Any<BtnUp>:		GripAction(Commit)";
 
 #define offset(field) IswOffsetOf(PanedRec, paned.field)

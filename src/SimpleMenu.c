@@ -1204,15 +1204,26 @@ ScrollMenuTo(SimpleMenuWidget smw, int direction)
 static void
 ScrollUp(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
+    int steps = 1;
     (void)p; (void)np;
-    ScrollMenuTo((SimpleMenuWidget)w, -1);
+    /* Read the discrete step count from an IswScroll event so a multi-notch
+       wheel scroll moves several entries; default to 1 for non-scroll
+       invocations (e.g. synthetic action calls). */
+    if (iswev != NULL && iswev->kind == IswScroll)
+        steps = -iswev->scroll.discrete_y;
+    if (steps == 0) steps = -1;
+    ScrollMenuTo((SimpleMenuWidget)w, steps);
 }
 
 static void
 ScrollDown(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
+    int steps = 1;
     (void)p; (void)np;
-    ScrollMenuTo((SimpleMenuWidget)w, +1);
+    if (iswev != NULL && iswev->kind == IswScroll)
+        steps = iswev->scroll.discrete_y;
+    if (steps == 0) steps = 1;
+    ScrollMenuTo((SimpleMenuWidget)w, steps);
 }
 
 static void
