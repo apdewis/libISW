@@ -291,6 +291,7 @@ set(ISW_WIDGET_SOURCES
     src/Grip.c
     src/IconView.c
     src/ListView.c
+    src/ListViewHeader.c
     src/Label.c
     src/Layout.c
     src/List.c

@@ -17,6 +17,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ListViewP.h>
+#include <ISW/ListViewHeaderP.h>
 #include <ISW/Viewport.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
@@ -28,12 +29,8 @@
 
 #define CELL_PAD_X   6
 #define CELL_PAD_Y   2
-#define RESIZE_GRIP  4   /* pixels from column separator edge for resize cursor */
 #define DEFAULT_COL_W 120
 #define MIN_COL_W     30
-#define SORT_ARROW_W  7  /* width of sort direction arrow */
-#define SORT_ARROW_H  4  /* height of sort direction arrow */
-#define SORT_ARROW_GAP 4 /* gap between title text and arrow */
 
 #define Offset(field) IswOffsetOf(ListViewRec, field)
 
@@ -64,6 +61,8 @@ static IswResource resources[] = {
         Offset(listView.data), IswRImmediate, NULL},
     {IswNcursorRow, IswCCursorRow, IswRInt, sizeof(int),
         Offset(listView.cursor), IswRImmediate, (IswPointer) -1},
+    {IswNunrealizeCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(listView.unrealize_callbacks), IswRCallback, NULL},
     {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
         Offset(core.border_width), IswRImmediate, (IswPointer) 0},
 };
@@ -82,7 +81,6 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void SelectRow(Widget, IswEvent *, String *, Cardinal *);
 static void BandDrag(Widget, IswEvent *, String *, Cardinal *);
 static void BandFinish(Widget, IswEvent *, String *, Cardinal *);
-static void TrackMotion(Widget, IswEvent *, String *, Cardinal *);
 static void MoveCursor(Widget, IswEvent *, String *, Cardinal *);
 static void ExtendSelection(Widget, IswEvent *, String *, Cardinal *);
 static void ActivateCursor(Widget, IswEvent *, String *, Cardinal *);
@@ -90,11 +88,16 @@ static void ToggleCursor(Widget, IswEvent *, String *, Cardinal *);
 static void SelectAll(Widget, IswEvent *, String *, Cardinal *);
 static void HandleFocus(Widget, IswEvent *, String *, Cardinal *);
 
+static void CreateHeader(ListViewWidget);
+static void DestroyHeader(ListViewWidget);
+static void PositionHeader(ListViewWidget);
+static Widget ListViewHitChild(Widget, int, int, int *, int *);
+static Widget ListViewNthWindowlessChild(Widget, int);
+
 static char defaultTranslations[] =
     "<PrimaryDown>: SelectRow()\n"
     "<PrimaryMotion>: BandDrag()\n"
     "<PrimaryUp>: BandFinish()\n"
-    "<Motion>: TrackMotion()\n"
     "Ctrl<Key>a: SelectAll()\n"
     "Shift<Key>Up: ExtendSelection(up)\n"
     "Shift<Key>Down: ExtendSelection(down)\n"
@@ -111,7 +114,6 @@ static IswActionsRec actions[] = {
     {"SelectRow",        SelectRow},
     {"BandDrag",         BandDrag},
     {"BandFinish",       BandFinish},
-    {"TrackMotion",      TrackMotion},
     {"MoveCursor",       MoveCursor},
     {"ExtendSelection",  ExtendSelection},
     {"ActivateCursor",   ActivateCursor},
@@ -156,7 +158,9 @@ ListViewClassRec listViewClassRec = {
     NULL
   },
   { /* simple */
-    IswInheritChangeSensitive
+    IswInheritChangeSensitive,
+    ListViewHitChild,
+    ListViewNthWindowlessChild
   },
   { /* listView */
     0
@@ -244,17 +248,10 @@ ComputeMetrics(ListViewWidget lv)
         lv->listView.computed_row_h = (Dimension)(fh + 2 * (CELL_PAD_Y));
     }
 
-    /* Header height */
-    if (!lv->listView.show_header) {
-        lv->listView.computed_hdr_h = 0;
-    } else if (lv->listView.header_height > 0) {
-        lv->listView.computed_hdr_h = (lv->listView.header_height);
-    } else {
-        int fh = lv->listView.font
-            ? ISWScaledFontHeight(w, lv->listView.font)
-            : (int)(14);
-        lv->listView.computed_hdr_h = (Dimension)(fh + 2 * (CELL_PAD_Y) + 2);
-    }
+    /* Header height comes from the header child (0 when there is none) */
+    lv->listView.computed_hdr_h = lv->listView.header
+        ? lv->listView.header->core.height
+        : 0;
 
     /* Total column width */
     Dimension tw = 0;
@@ -297,22 +294,6 @@ ColAtX(ListViewWidget lv, Position x)
     for (int i = 0; i < lv->listView.col_count; i++) {
         cx += (int)lv->listView.col_info[i].width;
         if ((int)x < cx)
-            return i;
-    }
-    return -1;
-}
-
-/* Check if x is near a column separator for resize */
-static int
-ResizeHitTest(ListViewWidget lv, Position x, Position y)
-{
-    if ((int)y >= (int)lv->listView.computed_hdr_h)
-        return -1;  /* only in header */
-    int cx = 0;
-    int grip = (int)(RESIZE_GRIP);
-    for (int i = 0; i < lv->listView.col_count; i++) {
-        cx += (int)lv->listView.col_info[i].width;
-        if (abs((int)x - cx) <= grip)
             return i;
     }
     return -1;
@@ -382,6 +363,185 @@ ScrollToCursor(ListViewWidget lv)
 }
 
 /* ================================================================
+ * Header subwidget (mirrors Text's optional scrollbar children)
+ * ================================================================ */
+
+static Boolean BandRedrawWorkProc(IswPointer closure);
+
+/* Sort click in the header — adopt the new sort state and re-fire the
+   public reorder callback on the ListView. */
+static void
+HeaderSort(Widget hdr, IswPointer client, IswPointer call)
+{
+    ListViewWidget lv = (ListViewWidget) client;
+    IswListViewReorderCallbackData *cb =
+        (IswListViewReorderCallbackData *) call;
+    (void)hdr;
+
+    lv->listView.sort_column = cb->column;
+    lv->listView.sort_direction = cb->direction;
+    IswCallCallbacks((Widget)lv, IswNreorderCallback, (IswPointer)cb);
+}
+
+/* Separator drag in the header — apply the new width to the column model
+   and coalesce the repaint (rows and header) through the work proc. */
+static void
+HeaderColumnResize(Widget hdr, IswPointer client, IswPointer call)
+{
+    ListViewWidget lv = (ListViewWidget) client;
+    IswListViewHeaderResizeCallbackData *cb =
+        (IswListViewHeaderResizeCallbackData *) call;
+    int ci = cb->column;
+    (void)hdr;
+
+    if (ci < 0 || ci >= lv->listView.col_count)
+        return;
+    if (lv->listView.col_info[ci].width == cb->width)
+        return;
+
+    lv->listView.col_info[ci].width = cb->width;
+    Dimension tw = 0;
+    for (int i = 0; i < lv->listView.col_count; i++)
+        tw += lv->listView.col_info[i].width;
+    lv->listView.total_col_w = tw;
+
+    lv->listView.redraw_pending = True;
+    if (!lv->listView.work_proc_id) {
+        lv->listView.work_proc_id = IswAppAddWorkProc(
+            IswWidgetToApplicationContext((Widget)lv),
+            BandRedrawWorkProc, (IswPointer)lv);
+    }
+}
+
+/* ARGSUSED */
+static void
+UnrealizeHeader(Widget widget, IswPointer client, IswPointer call)
+{
+    ListViewWidget lv = (ListViewWidget) widget;
+    (void)client; (void)call;
+
+    if (lv->listView.header)
+        IswUnrealizeWidget(lv->listView.header);
+}
+
+static void
+PositionHeader(ListViewWidget lv)
+{
+    Widget hdr = lv->listView.header;
+
+    if (hdr == NULL)
+        return;
+
+    IswResizeWidget(hdr, ((Widget)lv)->core.width,
+                    _IswListViewHeaderPreferredHeight(hdr),
+                    hdr->core.border_width);
+    IswMoveWidget(hdr, 0, 0);
+}
+
+static void
+CreateHeader(ListViewWidget lv)
+{
+    Widget w = (Widget) lv;
+    Widget hdr;
+    IswArgBuilder ab = IswArgBuilderInit();
+
+    if (lv->listView.header != NULL)
+        return;
+
+    IswArgForeground(&ab, lv->listView.foreground);
+    IswArgBackground(&ab, w->core.background_pixel);
+    IswArgFont(&ab, lv->listView.font);
+    ISW_ARG(&ab, IswNheaderHeight, lv->listView.header_height);
+    lv->listView.header = hdr =
+        IswCreateWidget("header", listViewHeaderWidgetClass, w,
+                        ab.args, ab.count);
+
+    IswAddCallback(hdr, IswNsortCallback, HeaderSort, (IswPointer)lv);
+    IswAddCallback(hdr, IswNcolumnResizeCallback, HeaderColumnResize,
+                   (IswPointer)lv);
+    IswAddCallback(w, IswNunrealizeCallback, UnrealizeHeader,
+                   (IswPointer)NULL);
+
+    _IswListViewHeaderSetColumns(hdr, lv->listView.col_info,
+                                 lv->listView.col_count);
+    _IswListViewHeaderSetSort(hdr, lv->listView.sort_column,
+                              lv->listView.sort_direction);
+
+    PositionHeader(lv);
+
+    if (IswIsRealized(w)) {
+        IswRealizeWidget(hdr);
+        IswMapWidget(hdr);
+        _IswPlatformFlush(IswDisplayOf(w));
+    }
+}
+
+static void
+DestroyHeader(ListViewWidget lv)
+{
+    Widget hdr = lv->listView.header;
+
+    if (hdr == NULL)
+        return;
+
+    IswRemoveCallback((Widget)lv, IswNunrealizeCallback, UnrealizeHeader,
+                      (IswPointer)NULL);
+    IswDestroyWidget(hdr);
+    lv->listView.header = NULL;
+}
+
+/* Repaint the header.  It is a windowless child but ListView is not a
+   Composite, so it is not in composite.children and the generic expose
+   delegation never reaches it — ListView paints it itself. */
+static void
+PaintHeader(ListViewWidget lv)
+{
+    Widget hdr = lv->listView.header;
+
+    if (hdr != NULL && IswIsRealized(hdr) &&
+        hdr->core.widget_class->core_class.expose != NULL)
+        (*hdr->core.widget_class->core_class.expose)(hdr, NULL, 0);
+}
+
+/* Hit-test hook (Simple class) so the windowless event dispatcher can route
+   pointer events to the header, which is not held in a composite child
+   list.  (x,y) are relative to ListView's content origin. */
+static Widget
+ListViewHitChild(Widget w, int x, int y, int *dx, int *dy)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+    Widget hdr = lv->listView.header;
+    int hx, hy, hw, hh;
+
+    if (hdr == NULL || !hdr->core.windowless_mapped)
+        return NULL;
+
+    hx = hdr->core.x;
+    hy = hdr->core.y;
+    hw = (int) hdr->core.width + 2 * (int) hdr->core.border_width;
+    hh = (int) hdr->core.height + 2 * (int) hdr->core.border_width;
+
+    if (x >= hx && x < hx + hw && y >= hy && y < hy + hh) {
+        *dx = hx + (int) hdr->core.border_width;
+        *dy = hy + (int) hdr->core.border_width;
+        return hdr;
+    }
+    return NULL;
+}
+
+/* Enumerate ListView's windowless sub-widgets (its header) for the paint
+   and composite passes.  Returns NULL past the end. */
+static Widget
+ListViewNthWindowlessChild(Widget w, int i)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+
+    if (i == 0 && lv->listView.header != NULL)
+        return lv->listView.header;
+    return NULL;
+}
+
+/* ================================================================
  * Widget methods
  * ================================================================ */
 
@@ -394,6 +554,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     ((SimpleWidget) new)->simple.traversal_on = True;
 
+    lv->listView.header = NULL;
     lv->listView.col_info = NULL;
     lv->listView.col_count = 0;
     lv->listView.sel_flags = NULL;
@@ -407,12 +568,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lv->listView.work_proc_id = 0;
     lv->listView.deselect_pending = False;
     lv->listView.deselect_index = -1;
-    lv->listView.col_resize_active = False;
-    lv->listView.col_resize_index = -1;
     lv->listView.total_col_w = 0;
-    lv->listView.resize_cursor = IswCursorNone;
-    lv->listView.default_cursor = IswCursorNone;
-    lv->listView.resize_cursor_set = False;
     lv->listView.sort_column = -1;
     lv->listView.sort_direction = IswListViewSortNone;
     lv->listView.drop_highlight = -1;
@@ -424,6 +580,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         new->core.width = (400);
     if (new->core.height == 0)
         new->core.height = (200);
+
+    if (lv->listView.show_header)
+        CreateHeader(lv);
 
     ComputeMetrics(lv);
 }
@@ -438,9 +597,10 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 
     lv->listView.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
 
-    lv->listView.resize_cursor = _IswLoadThemedCursor(dpy, w->core.screen,
-        "sb_h_double_arrow");
-    lv->listView.default_cursor = ((SimpleWidget)w)->simple.cursor;
+    if (lv->listView.header != NULL) {
+        IswRealizeWidget(lv->listView.header);
+        IswMapWidget(lv->listView.header);
+    }
 }
 
 static void
@@ -449,11 +609,11 @@ Destroy(Widget w)
     ListViewWidget lv = (ListViewWidget) w;
     if (lv->listView.work_proc_id)
         IswRemoveWorkProc(lv->listView.work_proc_id);
+    DestroyHeader(lv);
     FreeColumns(lv);
     FreeSelFlags(lv);
     if (lv->listView.render_ctx)
         ISWRenderDestroy(lv->listView.render_ctx);
-    _IswFreeCursor(w, lv->listView.resize_cursor);
 }
 
 static void
@@ -461,6 +621,8 @@ Resize(Widget w)
 {
     ListViewWidget lv = (ListViewWidget) w;
     int n = lv->listView.col_count;
+
+    PositionHeader(lv);
 
     if (n > 0 && w->core.width > 0) {
         Dimension avail = w->core.width;
@@ -508,10 +670,9 @@ QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *reply)
     Dimension row_h = lv->listView.row_height > 0
                     ? lv->listView.row_height
                     : (Dimension)(fh + 2 * CELL_PAD_Y);
-    Dimension hdr_h = !lv->listView.show_header ? 0
-                    : (lv->listView.header_height > 0
-                       ? lv->listView.header_height
-                       : (Dimension)(fh + 2 * CELL_PAD_Y + 2));
+    Dimension hdr_h = lv->listView.header
+                    ? lv->listView.header->core.height
+                    : 0;
     Dimension content_h = hdr_h + (Dimension)(lv->listView.nrows * (int)row_h);
     if (content_h < 1) content_h = 1;
 
@@ -527,116 +688,6 @@ QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *reply)
 /* ================================================================
  * Rendering
  * ================================================================ */
-
-static void
-DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
-{
-    Widget w = (Widget)lv;
-    Dimension hdr_h = lv->listView.computed_hdr_h;
-    Dimension pad_x = (CELL_PAD_X);
-
-    if (!hdr_h)
-        return;
-
-    /* Header background: slightly darker than widget background */
-    ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.08));
-    ISWRenderFillRectangle(ctx, 0, 0, (int)w->core.width, (int)hdr_h);
-
-    /* Header bottom line */
-    ISWRenderSetColor(ctx, lv->listView.foreground);
-    ISWRenderSetLineWidth(ctx, 1.0);
-    ISWRenderDrawLine(ctx, 0, (int)hdr_h - 1, (int)w->core.width, (int)hdr_h - 1);
-
-    if (lv->listView.font)
-        ISWRenderSetFont(ctx, lv->listView.font);
-
-    int ascent = lv->listView.font
-        ? ISWScaledFontAscent(w, lv->listView.font)
-        : (int)(11);
-
-    int x = 0;
-    for (int i = 0; i < lv->listView.col_count; i++) {
-        Dimension cw = lv->listView.col_info[i].width;
-
-        /* Column separator line */
-        if (i > 0) {
-            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.2));
-            ISWRenderDrawLine(ctx, x, 0, x, (int)hdr_h);
-        }
-
-        /* Title text and sort arrow */
-        {
-            int text_x = x + (int)pad_x;
-            int avail_w = (int)cw - 2 * (int)pad_x;
-            int ty = ((int)hdr_h - 1 + ascent) / 2;
-
-            /* Reserve space for sort arrow if this is the sorted column */
-            int arrow_w_scaled = (int)(SORT_ARROW_W);
-            int arrow_h_scaled = (int)(SORT_ARROW_H);
-            int arrow_gap = (int)(SORT_ARROW_GAP);
-            Boolean is_sorted = (lv->listView.sort_column == i &&
-                                 lv->listView.sort_direction != IswListViewSortNone);
-
-            if (is_sorted)
-                avail_w -= arrow_w_scaled + arrow_gap;
-
-            if (lv->listView.col_info[i].title) {
-                const char *title = lv->listView.col_info[i].title;
-                int len = (int)strlen(title);
-
-                ISWRenderSetColor(ctx, lv->listView.foreground);
-                ISWRenderSetClipRectangle(ctx, text_x, 0, avail_w, (int)hdr_h);
-                ISWRenderDrawString(ctx, title, len, text_x, ty);
-                ISWRenderClearClip(ctx);
-
-                /* Draw sort direction arrow right of the text */
-                if (is_sorted) {
-                    int tw = ISWRenderTextWidth(ctx, title, len);
-                    if (tw > avail_w)
-                        tw = avail_w;
-                    int ax = text_x + tw + arrow_gap;
-                    int ay = ((int)hdr_h - arrow_h_scaled) / 2;
-
-                    ISWRenderSetColor(ctx, lv->listView.foreground);
-
-                    IswPoint pts[3];
-                    if (lv->listView.sort_direction == IswListViewSortAscending) {
-                        /* Up arrow: triangle pointing up */
-                        pts[0] = (IswPoint){ax + arrow_w_scaled / 2, ay};
-                        pts[1] = (IswPoint){ax, ay + arrow_h_scaled};
-                        pts[2] = (IswPoint){ax + arrow_w_scaled, ay + arrow_h_scaled};
-                    } else {
-                        /* Down arrow: triangle pointing down */
-                        pts[0] = (IswPoint){ax, ay};
-                        pts[1] = (IswPoint){ax + arrow_w_scaled, ay};
-                        pts[2] = (IswPoint){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
-                    }
-                    ISWRenderFillPolygon(ctx, pts, 3);
-                }
-            } else if (is_sorted) {
-                /* No title but sorted — draw arrow centered */
-                int ax = x + ((int)cw - arrow_w_scaled) / 2;
-                int ay = ((int)hdr_h - arrow_h_scaled) / 2;
-
-                ISWRenderSetColor(ctx, lv->listView.foreground);
-
-                IswPoint pts[3];
-                if (lv->listView.sort_direction == IswListViewSortAscending) {
-                    pts[0] = (IswPoint){ax + arrow_w_scaled / 2, ay};
-                    pts[1] = (IswPoint){ax, ay + arrow_h_scaled};
-                    pts[2] = (IswPoint){ax + arrow_w_scaled, ay + arrow_h_scaled};
-                } else {
-                    pts[0] = (IswPoint){ax, ay};
-                    pts[1] = (IswPoint){ax + arrow_w_scaled, ay};
-                    pts[2] = (IswPoint){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
-                }
-                ISWRenderFillPolygon(ctx, pts, 3);
-            }
-        }
-
-        x += (int)cw;
-    }
-}
 
 static void
 DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
@@ -803,11 +854,12 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
 
     DrawRows(lv, ctx);
-    DrawHeader(lv, ctx);
     DrawCursor(lv, ctx);
     DrawBand(lv, ctx);
 
     ISWRenderEnd(ctx);
+
+    PaintHeader(lv);
 }
 
 static Boolean
@@ -822,6 +874,10 @@ SetValues(Widget current, Widget request, Widget desired,
     if (clv->listView.columns_res != dlv->listView.columns_res ||
         clv->listView.ncols_res != dlv->listView.ncols_res) {
         BuildColumns(dlv);
+        if (dlv->listView.header)
+            _IswListViewHeaderSetColumns(dlv->listView.header,
+                                         dlv->listView.col_info,
+                                         dlv->listView.col_count);
         ComputeMetrics(dlv);
         redraw = TRUE;
     }
@@ -833,10 +889,28 @@ SetValues(Widget current, Widget request, Widget desired,
         redraw = TRUE;
     }
 
+    if (clv->listView.show_header != dlv->listView.show_header) {
+        if (dlv->listView.show_header)
+            CreateHeader(dlv);
+        else
+            DestroyHeader(dlv);
+        ComputeMetrics(dlv);
+        redraw = TRUE;
+    }
+
     if (clv->listView.foreground != dlv->listView.foreground ||
         clv->core.background_pixel != dlv->core.background_pixel ||
         clv->listView.font != dlv->listView.font ||
-        clv->listView.show_header != dlv->listView.show_header) {
+        clv->listView.header_height != dlv->listView.header_height) {
+        if (dlv->listView.header) {
+            IswArgBuilder ab = IswArgBuilderInit();
+            IswArgForeground(&ab, dlv->listView.foreground);
+            IswArgBackground(&ab, dlv->core.background_pixel);
+            IswArgFont(&ab, dlv->listView.font);
+            ISW_ARG(&ab, IswNheaderHeight, dlv->listView.header_height);
+            IswSetValues(dlv->listView.header, ab.args, ab.count);
+            PositionHeader(dlv);
+        }
         ComputeMetrics(dlv);
         redraw = TRUE;
     }
@@ -892,50 +966,6 @@ BandRedrawWorkProc(IswPointer closure)
  * ================================================================ */
 
 static void
-UpdateResizeCursor(ListViewWidget lv, Boolean over_grip)
-{
-    Widget w = (Widget)lv;
-    if (!IswIsRealized(w))
-        return;
-
-    if (over_grip && !lv->listView.resize_cursor_set) {
-        ((SimpleWidget)w)->simple.cursor = lv->listView.resize_cursor;
-        _IswSimpleApplyCursor(w);
-        lv->listView.resize_cursor_set = True;
-    } else if (!over_grip && lv->listView.resize_cursor_set) {
-        ((SimpleWidget)w)->simple.cursor = lv->listView.default_cursor;
-        _IswSimpleApplyCursor(w);
-        lv->listView.resize_cursor_set = False;
-    }
-}
-
-static void
-TrackMotion(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
-{
-    ListViewWidget lv = (ListViewWidget) w;
-    (void)params; (void)num_params;
-
-    if (iswev->kind != IswMotion)
-        return;
-
-    /* Skip during active drag — cursor is already set */
-    if (lv->listView.col_resize_active || lv->listView.band_active)
-        return;
-
-    Position y = IswEventY(iswev);
-
-    /* Outside header — just restore default if needed */
-    if ((int)y >= (int)lv->listView.computed_hdr_h) {
-        if (lv->listView.resize_cursor_set)
-            UpdateResizeCursor(lv, False);
-        return;
-    }
-
-    int col = ResizeHitTest(lv, IswEventX(iswev), y);
-    UpdateResizeCursor(lv, col >= 0);
-}
-
-static void
 SelectRow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     ListViewWidget lv = (ListViewWidget) w;
@@ -946,41 +976,6 @@ SelectRow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
         x = IswEventX(iswev);
         y = IswEventY(iswev);
     } else {
-        return;
-    }
-
-    /* Column resize? */
-    int resize_col = ResizeHitTest(lv, x, y);
-    if (resize_col >= 0) {
-        lv->listView.col_resize_active = True;
-        lv->listView.col_resize_index = resize_col;
-        lv->listView.col_resize_start_x = x;
-        lv->listView.col_resize_start_w = lv->listView.col_info[resize_col].width;
-        UpdateResizeCursor(lv, True);
-        return;
-    }
-
-    /* Click in header (not on separator) — toggle sort */
-    if ((int)y < (int)lv->listView.computed_hdr_h) {
-        int col = ColAtX(lv, x);
-        if (col >= 0) {
-            /* Toggle sort direction for this column */
-            if (lv->listView.sort_column == col) {
-                if (lv->listView.sort_direction == IswListViewSortAscending)
-                    lv->listView.sort_direction = IswListViewSortDescending;
-                else
-                    lv->listView.sort_direction = IswListViewSortAscending;
-            } else {
-                lv->listView.sort_column = col;
-                lv->listView.sort_direction = IswListViewSortAscending;
-            }
-
-            IswListViewReorderCallbackData cb;
-            cb.column = col;
-            cb.direction = lv->listView.sort_direction;
-            IswCallCallbacks(w, IswNreorderCallback, (IswPointer)&cb);
-            Redisplay(w, NULL, 0);
-        }
         return;
     }
 
@@ -1073,32 +1068,6 @@ BandDrag(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     Position new_x = IswEventX(iswev);
     Position new_y = IswEventY(iswev);
 
-    /* Column resize drag */
-    if (lv->listView.col_resize_active) {
-        int ci = lv->listView.col_resize_index;
-        if (ci >= 0 && ci < lv->listView.col_count) {
-            int delta = (int)new_x - (int)lv->listView.col_resize_start_x;
-            int new_w = (int)lv->listView.col_resize_start_w + delta;
-            Dimension min_w = lv->listView.col_info[ci].min_width;
-            if (new_w < (int)min_w)
-                new_w = (int)min_w;
-            if ((Dimension)new_w == lv->listView.col_info[ci].width)
-                return;
-            lv->listView.col_info[ci].width = (Dimension)new_w;
-            Dimension tw = 0;
-            for (int i = 0; i < lv->listView.col_count; i++)
-                tw += lv->listView.col_info[i].width;
-            lv->listView.total_col_w = tw;
-            lv->listView.redraw_pending = True;
-            if (!lv->listView.work_proc_id) {
-                lv->listView.work_proc_id = IswAppAddWorkProc(
-                    IswWidgetToApplicationContext(w),
-                    BandRedrawWorkProc, (IswPointer)w);
-            }
-        }
-        return;
-    }
-
     lv->listView.deselect_pending = False;
 
     /* Activate band on first drag if started from a row */
@@ -1131,14 +1100,6 @@ BandFinish(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     ListViewWidget lv = (ListViewWidget) w;
     (void)iswev; (void)params; (void)num_params;
-
-    /* Column resize end */
-    if (lv->listView.col_resize_active) {
-        lv->listView.col_resize_active = False;
-        lv->listView.col_resize_index = -1;
-        UpdateResizeCursor(lv, False);
-        return;
-    }
 
     /* Deferred deselect */
     if (lv->listView.deselect_pending) {
@@ -1374,6 +1335,10 @@ IswListViewAddColumn(Widget w, const char *title, Dimension width, Dimension min
 
     lv->listView.col_count = n;
     lv->listView.ncols = n;
+    if (lv->listView.header)
+        _IswListViewHeaderSetColumns(lv->listView.header,
+                                     lv->listView.col_info,
+                                     lv->listView.col_count);
     ComputeMetrics(lv);
 
     if (IswIsRealized(w))
@@ -1435,8 +1400,8 @@ IswListViewSetSort(Widget w, int column, IswListViewSortDirection direction)
     ListViewWidget lv = (ListViewWidget) w;
     lv->listView.sort_column = column;
     lv->listView.sort_direction = direction;
-    if (IswIsRealized(w))
-        Redisplay(w, NULL, 0);
+    if (lv->listView.header)
+        _IswListViewHeaderSetSort(lv->listView.header, column, direction);
 }
 
 void

@@ -27,6 +27,7 @@ typedef struct {
     Boolean         show_header;
     Dimension       row_height;     /* row height (0 = auto from font) */
     Dimension       header_height;  /* header height (0 = auto) */
+    IswCallbackList  unrealize_callbacks; /* used for the header child */
 
     /* column definitions (set via API, not IswResource directly) */
     IswListViewColumn *columns_res; /* resource pointer (not owned) */
@@ -38,6 +39,7 @@ typedef struct {
     int             ncols;          /* actual column count (from columns) */
 
     /* private state */
+    Widget          header;         /* optional ListViewHeader child (NULL = none) */
     ListViewColumnInfo *col_info;   /* owned: internal column array */
     int             col_count;      /* length of col_info */
     Boolean        *sel_flags;      /* per-row selection flags */
@@ -65,20 +67,9 @@ typedef struct {
 
     int             drop_highlight;    /* row index to highlight as drop target, -1 = none */
 
-    /* sort state */
+    /* sort state (model; the header child renders it) */
     int             sort_column;     /* -1 = no sort */
     IswListViewSortDirection sort_direction;
-
-    /* column resize drag */
-    Boolean         col_resize_active;
-    int             col_resize_index;  /* which column separator */
-    Position        col_resize_start_x;
-    Dimension       col_resize_start_w;
-
-    /* column resize cursors */
-    IswCursor    resize_cursor;     /* sb_h_double_arrow */
-    IswCursor    default_cursor;    /* widget's normal cursor */
-    Boolean         resize_cursor_set; /* True when resize cursor is active */
 } ListViewPart;
 
 typedef struct _ListViewRec {

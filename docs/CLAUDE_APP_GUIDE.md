@@ -113,6 +113,7 @@ void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 |---|---|---|---|
 | List | `listWidgetClass` | `<ISW/List.h>` | Scrollable item list |
 | ListView | `listViewWidgetClass` | `<ISW/ListView.h>` | Multi-column list with resizable columns, multiselect, rubberband |
+| ListViewHeader | `listViewHeaderWidgetClass` | `<ISW/ListViewHeader.h>` | ListView's column header strip; created internally by ListView (`showHeader`) — not instantiated by apps |
 | IconView | `iconViewWidgetClass` | `<ISW/IconView.h>` | Scrollable icon grid with multiselect |
 | Tree | `treeWidgetClass` | `<ISW/Tree.h>` | Hierarchical tree view |
 | ListBox | `listBoxWidgetClass` | `<ISW/ListBox.h>` | Selectable rows with rich widget content; nest a ListBox for collapsible groups |

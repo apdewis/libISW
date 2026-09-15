@@ -50,6 +50,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ComboBox.h>
 #include <ISW/IconView.h>
 #include <ISW/ListView.h>
+#include <ISW/ListViewHeader.h>
 #include <ISW/List.h>
 #include <ISW/ListBox.h>
 #include <ISW/ListBoxRow.h>
@@ -94,6 +95,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "label", &labelWidgetClass },
 { "layout", &layoutWidgetClass },
 { "listView", &listViewWidgetClass },
+{ "listViewHeader", &listViewHeaderWidgetClass },
 { "list", &listWidgetClass },
 { "listBox", &listBoxWidgetClass },
 { "listBoxRow", &listBoxRowWidgetClass },
