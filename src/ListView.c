@@ -955,7 +955,11 @@ BandRedrawWorkProc(IswPointer closure)
     lv->listView.work_proc_id = 0;
     if (lv->listView.redraw_pending) {
         lv->listView.redraw_pending = False;
-        BandUpdateSelection(lv);
+        /* Only rubber-band drags recompute the selection; column-resize
+           repaints from the header coalesce through here too and must
+           not replay stale band coordinates. */
+        if (lv->listView.band_active)
+            BandUpdateSelection(lv);
         Redisplay(w, NULL, 0);
     }
     return True;
