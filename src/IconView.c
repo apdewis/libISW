@@ -601,7 +601,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.band_saved = NULL;
     iw->iconView.anchor = -1;
     iw->iconView.cursor = -1;
-    iw->iconView.has_focus = False;
     ((SimpleWidget) new)->simple.traversal_on = True;
     iw->iconView.render_ctx = NULL;
     iw->iconView.cache = NULL;
@@ -993,36 +992,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(iw->iconView.foreground, 0.8));
         ISWRenderSetLineWidth(ctx, 2.0);
         ISWRenderStrokeRectangle(ctx, dx + 1, dy + 1, dw - 2, dh - 2);
-    }
-
-    /* Cursor focus indicator */
-    if (iw->iconView.has_focus && iw->iconView.cursor >= 0 &&
-        iw->iconView.cursor < iw->iconView.nitems) {
-        int ci = iw->iconView.cursor;
-        int col = ci % iw->iconView.ncols;
-        int row = ci / iw->iconView.ncols;
-        int fx = col * (int)iw->iconView.cell_w + (int)half_sp;
-        int fy = iw->iconView.row_y[row] + (int)half_sp;
-        int fw = (int)(iw->iconView.cell_w - spacing);
-        int fh = (int)(iw->iconView.row_h[row] - spacing);
-
-        ISWRenderSetColor(ctx, iw->iconView.foreground);
-        ISWRenderSetLineWidth(ctx, 1.0);
-
-        /* Dashed outline: draw short segments along each edge */
-        int dash = 3, gap = 3, step = dash + gap;
-        /* Top and bottom edges */
-        for (int dx = 0; dx < fw; dx += step) {
-            int seg = (dx + dash > fw) ? fw - dx : dash;
-            ISWRenderDrawLine(ctx, fx + dx, fy, fx + dx + seg, fy);
-            ISWRenderDrawLine(ctx, fx + dx, fy + fh, fx + dx + seg, fy + fh);
-        }
-        /* Left and right edges */
-        for (int dy = 0; dy < fh; dy += step) {
-            int seg = (dy + dash > fh) ? fh - dy : dash;
-            ISWRenderDrawLine(ctx, fx, fy + dy, fx, fy + dy + seg);
-            ISWRenderDrawLine(ctx, fx + fw, fy + dy, fx + fw, fy + dy + seg);
-        }
     }
 
     /* Rubber band overlay */
@@ -1554,16 +1523,11 @@ HandleFocus(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     if (!num_params || *num_params < 1)
         return;
 
-    if (strcmp(params[0], "in") == 0) {
-        iw->iconView.has_focus = True;
-        if (iw->iconView.cursor < 0 && iw->iconView.nitems > 0)
-            iw->iconView.cursor = 0;
-    } else {
-        iw->iconView.has_focus = False;
-    }
-
-    if (IswIsRealized(w))
-        Redisplay(w, NULL, 0);
+    /* Seed the keyboard cursor on focus-in; the cursor has no visual of
+       its own — selection fill and the active border cover it. */
+    if (strcmp(params[0], "in") == 0 &&
+        iw->iconView.cursor < 0 && iw->iconView.nitems > 0)
+        iw->iconView.cursor = 0;
 }
 
 /* --- Public API --- */

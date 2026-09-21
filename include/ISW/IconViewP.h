@@ -82,7 +82,6 @@ typedef struct {
 
     /* cursor / keyboard focus */
     int             cursor;        /* focused item index, -1 = none */
-    Boolean         has_focus;     /* widget has keyboard focus */
 
     /* deferred deselect: press on selected item defers clear to release */
     Boolean         deselect_pending;

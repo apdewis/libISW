@@ -561,7 +561,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lv->listView.band_saved = NULL;
     lv->listView.anchor = -1;
     lv->listView.cursor = -1;
-    lv->listView.has_focus = False;
     lv->listView.render_ctx = NULL;
     lv->listView.band_active = False;
     lv->listView.redraw_pending = False;
@@ -785,35 +784,6 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
 }
 
 static void
-DrawCursor(ListViewWidget lv, ISWRenderContext *ctx)
-{
-    if (!lv->listView.has_focus || lv->listView.cursor < 0 ||
-        lv->listView.cursor >= lv->listView.nrows)
-        return;
-
-    Widget w = (Widget)lv;
-    int hdr = (int)lv->listView.computed_hdr_h;
-    int ry = hdr + lv->listView.cursor * (int)lv->listView.computed_row_h;
-    int rw = (int)w->core.width;
-    int rh = (int)lv->listView.computed_row_h;
-
-    ISWRenderSetColor(ctx, lv->listView.foreground);
-    ISWRenderSetLineWidth(ctx, 1.0);
-
-    int dash = 3, gap = 3, step = dash + gap;
-    for (int dx = 0; dx < rw; dx += step) {
-        int seg = (dx + dash > rw) ? rw - dx : dash;
-        ISWRenderDrawLine(ctx, dx, ry, dx + seg, ry);
-        ISWRenderDrawLine(ctx, dx, ry + rh, dx + seg, ry + rh);
-    }
-    for (int dy = 0; dy < rh; dy += step) {
-        int seg = (dy + dash > rh) ? rh - dy : dash;
-        ISWRenderDrawLine(ctx, 0, ry + dy, 0, ry + dy + seg);
-        ISWRenderDrawLine(ctx, rw, ry + dy, rw, ry + dy + seg);
-    }
-}
-
-static void
 DrawBand(ListViewWidget lv, ISWRenderContext *ctx)
 {
     if (!lv->listView.band_active)
@@ -854,7 +824,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
 
     DrawRows(lv, ctx);
-    DrawCursor(lv, ctx);
     DrawBand(lv, ctx);
 
     ISWRenderEnd(ctx);
@@ -1280,16 +1249,11 @@ HandleFocus(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     if (!num_params || *num_params < 1)
         return;
 
-    if (strcmp(params[0], "in") == 0) {
-        lv->listView.has_focus = True;
-        if (lv->listView.cursor < 0 && lv->listView.nrows > 0)
-            lv->listView.cursor = 0;
-    } else {
-        lv->listView.has_focus = False;
-    }
-
-    if (IswIsRealized(w))
-        Redisplay(w, NULL, 0);
+    /* Seed the keyboard cursor on focus-in; the cursor has no visual of
+       its own — selection fill and the active border cover it. */
+    if (strcmp(params[0], "in") == 0 &&
+        lv->listView.cursor < 0 && lv->listView.nrows > 0)
+        lv->listView.cursor = 0;
 }
 
 /* ================================================================

@@ -46,7 +46,6 @@ typedef struct {
     Boolean        *band_saved;     /* selection state before rubber band */
     int             anchor;         /* anchor row for shift-click range */
     int             cursor;         /* focused row, -1 = none */
-    Boolean         has_focus;
 
     Dimension       computed_row_h; /* scaled row height */
     Dimension       computed_hdr_h; /* scaled header height */
