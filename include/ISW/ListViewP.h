@@ -40,6 +40,16 @@ typedef struct {
 
     /* private state */
     Widget          header;         /* optional ListViewHeader child (NULL = none) */
+
+    /* floating column-resize grips: one Grip child per interior divider,
+       centered in the visible area while the header is scrolled offscreen */
+    Widget         *grips;          /* owned array of Grip children */
+    int             grip_count;
+    Boolean         grips_visible;  /* current mapped state of the set */
+    int             grip_drag_col;      /* column being resized, -1 = none */
+    Position        grip_drag_start_x;  /* root x at drag start */
+    Dimension       grip_drag_start_w;  /* column width at drag start */
+
     ListViewColumnInfo *col_info;   /* owned: internal column array */
     int             col_count;      /* length of col_info */
     Boolean        *sel_flags;      /* per-row selection flags */

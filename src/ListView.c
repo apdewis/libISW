@@ -18,6 +18,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ListViewP.h>
 #include <ISW/ListViewHeaderP.h>
+#include <ISW/Grip.h>
 #include <ISW/Viewport.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
@@ -91,8 +92,17 @@ static void HandleFocus(Widget, IswEvent *, String *, Cardinal *);
 static void CreateHeader(ListViewWidget);
 static void DestroyHeader(ListViewWidget);
 static void PositionHeader(ListViewWidget);
+static void SyncGrips(ListViewWidget);
+static void DestroyGrips(ListViewWidget);
+static void PositionGrips(ListViewWidget);
 static Widget ListViewHitChild(Widget, int, int, int *, int *);
 static Widget ListViewNthWindowlessChild(Widget, int);
+
+/* Translations for the floating divider grips (Paned's grip pattern) */
+static char gripTranslations[] =
+    "<PrimaryDown>: GripAction(Start)\n"
+    "<PrimaryMotion>: GripAction(Move)\n"
+    "Any<BtnUp>: GripAction(Commit)";
 
 static char defaultTranslations[] =
     "<PrimaryDown>: SelectRow()\n"
@@ -383,23 +393,17 @@ HeaderSort(Widget hdr, IswPointer client, IswPointer call)
     IswCallCallbacks((Widget)lv, IswNreorderCallback, (IswPointer)cb);
 }
 
-/* Separator drag in the header — apply the new width to the column model
-   and coalesce the repaint (rows and header) through the work proc. */
+/* Apply a new width to one column and coalesce the repaint (rows, header,
+   grip positions) through the work proc. */
 static void
-HeaderColumnResize(Widget hdr, IswPointer client, IswPointer call)
+ApplyColumnWidth(ListViewWidget lv, int ci, Dimension width)
 {
-    ListViewWidget lv = (ListViewWidget) client;
-    IswListViewHeaderResizeCallbackData *cb =
-        (IswListViewHeaderResizeCallbackData *) call;
-    int ci = cb->column;
-    (void)hdr;
-
     if (ci < 0 || ci >= lv->listView.col_count)
         return;
-    if (lv->listView.col_info[ci].width == cb->width)
+    if (lv->listView.col_info[ci].width == width)
         return;
 
-    lv->listView.col_info[ci].width = cb->width;
+    lv->listView.col_info[ci].width = width;
     Dimension tw = 0;
     for (int i = 0; i < lv->listView.col_count; i++)
         tw += lv->listView.col_info[i].width;
@@ -413,6 +417,18 @@ HeaderColumnResize(Widget hdr, IswPointer client, IswPointer call)
     }
 }
 
+/* Separator drag in the header — apply the new width to the column model. */
+static void
+HeaderColumnResize(Widget hdr, IswPointer client, IswPointer call)
+{
+    ListViewWidget lv = (ListViewWidget) client;
+    IswListViewHeaderResizeCallbackData *cb =
+        (IswListViewHeaderResizeCallbackData *) call;
+    (void)hdr;
+
+    ApplyColumnWidth(lv, cb->column, cb->width);
+}
+
 /* ARGSUSED */
 static void
 UnrealizeHeader(Widget widget, IswPointer client, IswPointer call)
@@ -422,6 +438,8 @@ UnrealizeHeader(Widget widget, IswPointer client, IswPointer call)
 
     if (lv->listView.header)
         IswUnrealizeWidget(lv->listView.header);
+    for (int i = 0; i < lv->listView.grip_count; i++)
+        IswUnrealizeWidget(lv->listView.grips[i]);
 }
 
 static void
@@ -490,6 +508,189 @@ DestroyHeader(ListViewWidget lv)
     lv->listView.header = NULL;
 }
 
+/* ================================================================
+ * Floating divider grips
+ *
+ * One Grip child per interior column divider, centered in the
+ * viewport-visible area, mapped only while the header is scrolled
+ * fully offscreen.  The grip is a discrete visible widget, so its
+ * rect is the only place a press resizes — everywhere else in the
+ * row area stays band-select/DnD territory.
+ * ================================================================ */
+
+/* Drag handler (Paned's HandleGrip pattern).  Root coordinates make the
+   drag independent of the grip moving under the pointer as the column
+   resizes. */
+static void
+HandleGrip(Widget grip, IswPointer client, IswPointer call)
+{
+    ListViewWidget lv = (ListViewWidget) client;
+    IswGripCallData gd = (IswGripCallData) call;
+    IswEvent *ev = (IswEvent *) gd->event;
+    int loc;
+
+    if (gd->num_params != 1 || ev == NULL)
+        return;
+
+    switch (ev->kind) {
+    case IswButtonDown:
+    case IswButtonUp:
+        loc = ev->button.root_x;
+        break;
+    case IswMotion:
+        loc = ev->motion.root_x;
+        break;
+    default:
+        return;
+    }
+
+    switch (*gd->params[0]) {
+    case 'S': {
+        int ci = -1;
+        for (int i = 0; i < lv->listView.grip_count; i++) {
+            if (lv->listView.grips[i] == grip) {
+                ci = i;
+                break;
+            }
+        }
+        if (ci < 0 || ci >= lv->listView.col_count)
+            return;
+        lv->listView.grip_drag_col = ci;
+        lv->listView.grip_drag_start_x = (Position) loc;
+        lv->listView.grip_drag_start_w = lv->listView.col_info[ci].width;
+        break;
+    }
+    case 'M': {
+        int ci = lv->listView.grip_drag_col;
+        if (ci < 0 || ci >= lv->listView.col_count)
+            return;
+        int delta = loc - (int) lv->listView.grip_drag_start_x;
+        int new_w = (int) lv->listView.grip_drag_start_w + delta;
+        Dimension min_w = lv->listView.col_info[ci].min_width;
+        if (new_w < (int) min_w)
+            new_w = (int) min_w;
+        ApplyColumnWidth(lv, ci, (Dimension) new_w);
+        break;
+    }
+    case 'C':
+        lv->listView.grip_drag_col = -1;
+        break;
+    }
+}
+
+/* Place each grip centered on its divider at the vertical midpoint of the
+   visible area, and map the set only while the header is fully scrolled
+   off (its own separator grips serve while any of it is visible). */
+static void
+PositionGrips(ListViewWidget lv)
+{
+    Widget w = (Widget) lv;
+    Widget parent = IswParent(w);
+
+    if (lv->listView.grip_count <= 0)
+        return;
+
+    int vis_top = -(int) w->core.y;
+    if (vis_top < 0)
+        vis_top = 0;
+    int vis_bot = vis_top + (parent ? (int) parent->core.height
+                                    : (int) w->core.height);
+    if (vis_bot > (int) w->core.height)
+        vis_bot = (int) w->core.height;
+    int mid_y = (vis_top + vis_bot) / 2;
+
+    int cx = 0;
+    for (int i = 0; i < lv->listView.grip_count; i++) {
+        Widget grip = lv->listView.grips[i];
+        cx += (int) lv->listView.col_info[i].width;
+        IswMoveWidget(grip,
+                      (Position)(cx - (int) grip->core.width / 2),
+                      (Position)(mid_y - (int) grip->core.height / 2));
+    }
+
+    Boolean show = lv->listView.header != NULL &&
+                   vis_top >= (int) lv->listView.header->core.height;
+    if (show != lv->listView.grips_visible) {
+        for (int i = 0; i < lv->listView.grip_count; i++) {
+            if (show)
+                IswMapWidget(lv->listView.grips[i]);
+            else
+                IswUnmapWidget(lv->listView.grips[i]);
+        }
+        lv->listView.grips_visible = show;
+    }
+}
+
+/* Create/destroy grips to match the column count (col_count - 1 interior
+   dividers; none without a header, whose offscreen state gates them). */
+static void
+SyncGrips(ListViewWidget lv)
+{
+    Widget w = (Widget) lv;
+    static IswTranslations grip_xlations = NULL;
+    int want = (lv->listView.header != NULL && lv->listView.col_count > 1)
+             ? lv->listView.col_count - 1 : 0;
+    int have = lv->listView.grip_count;
+
+    for (int i = want; i < have; i++)
+        IswDestroyWidget(lv->listView.grips[i]);
+
+    if (want != have) {
+        if (want == 0) {
+            free(lv->listView.grips);
+            lv->listView.grips = NULL;
+        } else {
+            lv->listView.grips = realloc(lv->listView.grips,
+                                         (size_t)want * sizeof(Widget));
+        }
+    }
+
+    if (want > have && grip_xlations == NULL)
+        grip_xlations = IswParseTranslationTable(gripTranslations);
+
+    for (int i = have; i < want; i++) {
+        IswArgBuilder ab = IswArgBuilderInit();
+        IswArgTranslations(&ab, grip_xlations);
+        IswArgForeground(&ab, lv->listView.foreground);
+        IswArgCursorName(&ab, "sb_h_double_arrow");
+        Widget grip = IswCreateWidget("grip", gripWidgetClass, w,
+                                      ab.args, ab.count);
+        IswAddCallback(grip, IswNcallback, HandleGrip, (IswPointer)lv);
+        if (IswIsRealized(w)) {
+            IswRealizeWidget(grip);
+            if (lv->listView.grips_visible)
+                IswMapWidget(grip);
+        }
+        lv->listView.grips[i] = grip;
+    }
+
+    lv->listView.grip_count = want;
+    lv->listView.grip_drag_col = -1;
+    PositionGrips(lv);
+}
+
+static void
+DestroyGrips(ListViewWidget lv)
+{
+    for (int i = 0; i < lv->listView.grip_count; i++)
+        IswDestroyWidget(lv->listView.grips[i]);
+    free(lv->listView.grips);
+    lv->listView.grips = NULL;
+    lv->listView.grip_count = 0;
+    lv->listView.grips_visible = False;
+    lv->listView.grip_drag_col = -1;
+}
+
+/* Viewport scroll report — the grips float at the visible midpoint, so
+   every scroll repositions them.  The ListView surface itself is not
+   repainted; the grips composite at their own positions. */
+static void
+ViewportReport(Widget viewport, IswPointer client, IswPointer call)
+{
+    (void)viewport; (void)call;
+    PositionGrips((ListViewWidget) client);
+}
+
 /* Repaint the header.  It is a windowless child but ListView is not a
    Composite, so it is not in composite.children and the generic expose
    delegation never reaches it — ListView paints it itself. */
@@ -503,41 +704,60 @@ PaintHeader(ListViewWidget lv)
         (*hdr->core.widget_class->core_class.expose)(hdr, NULL, 0);
 }
 
-/* Hit-test hook (Simple class) so the windowless event dispatcher can route
-   pointer events to the header, which is not held in a composite child
-   list.  (x,y) are relative to ListView's content origin. */
+/* Point-in-child test for the hit_child hook; on a hit, reports the
+   child's content-origin offset like TextHitChild. */
 static Widget
-ListViewHitChild(Widget w, int x, int y, int *dx, int *dy)
+HitChildRect(Widget c, int x, int y, int *dx, int *dy)
 {
-    ListViewWidget lv = (ListViewWidget) w;
-    Widget hdr = lv->listView.header;
-    int hx, hy, hw, hh;
+    int cx, cy, cw, ch;
 
-    if (hdr == NULL || !hdr->core.windowless_mapped)
+    if (c == NULL || !c->core.windowless_mapped)
         return NULL;
 
-    hx = hdr->core.x;
-    hy = hdr->core.y;
-    hw = (int) hdr->core.width + 2 * (int) hdr->core.border_width;
-    hh = (int) hdr->core.height + 2 * (int) hdr->core.border_width;
+    cx = c->core.x;
+    cy = c->core.y;
+    cw = (int) c->core.width + 2 * (int) c->core.border_width;
+    ch = (int) c->core.height + 2 * (int) c->core.border_width;
 
-    if (x >= hx && x < hx + hw && y >= hy && y < hy + hh) {
-        *dx = hx + (int) hdr->core.border_width;
-        *dy = hy + (int) hdr->core.border_width;
-        return hdr;
+    if (x >= cx && x < cx + cw && y >= cy && y < cy + ch) {
+        *dx = cx + (int) c->core.border_width;
+        *dy = cy + (int) c->core.border_width;
+        return c;
     }
     return NULL;
 }
 
-/* Enumerate ListView's windowless sub-widgets (its header) for the paint
-   and composite passes.  Returns NULL past the end. */
+/* Hit-test hook (Simple class) so the windowless event dispatcher can route
+   pointer events to the header and grips, which are not held in a composite
+   child list.  (x,y) are relative to ListView's content origin. */
+static Widget
+ListViewHitChild(Widget w, int x, int y, int *dx, int *dy)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+
+    /* Grips stack above the rows — test them first */
+    for (int i = 0; i < lv->listView.grip_count; i++) {
+        Widget hit = HitChildRect(lv->listView.grips[i], x, y, dx, dy);
+        if (hit != NULL)
+            return hit;
+    }
+    return HitChildRect(lv->listView.header, x, y, dx, dy);
+}
+
+/* Enumerate ListView's windowless sub-widgets (header, then grips) for the
+   paint and composite passes.  Returns NULL past the end. */
 static Widget
 ListViewNthWindowlessChild(Widget w, int i)
 {
     ListViewWidget lv = (ListViewWidget) w;
 
-    if (i == 0 && lv->listView.header != NULL)
-        return lv->listView.header;
+    if (lv->listView.header != NULL) {
+        if (i == 0)
+            return lv->listView.header;
+        i--;
+    }
+    if (i >= 0 && i < lv->listView.grip_count)
+        return lv->listView.grips[i];
     return NULL;
 }
 
@@ -555,6 +775,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ((SimpleWidget) new)->simple.traversal_on = True;
 
     lv->listView.header = NULL;
+    lv->listView.grips = NULL;
+    lv->listView.grip_count = 0;
+    lv->listView.grips_visible = False;
+    lv->listView.grip_drag_col = -1;
     lv->listView.col_info = NULL;
     lv->listView.col_count = 0;
     lv->listView.sel_flags = NULL;
@@ -582,6 +806,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     if (lv->listView.show_header)
         CreateHeader(lv);
+    SyncGrips(lv);
 
     ComputeMetrics(lv);
 }
@@ -600,14 +825,29 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
         IswRealizeWidget(lv->listView.header);
         IswMapWidget(lv->listView.header);
     }
+
+    /* Grips are realized but stay unmapped until the header scrolls off */
+    for (int i = 0; i < lv->listView.grip_count; i++)
+        IswRealizeWidget(lv->listView.grips[i]);
+
+    /* Track scrolling so the grips float at the visible midpoint */
+    Widget parent = IswParent(w);
+    if (parent != NULL && IswIsSubclass(parent, viewportWidgetClass))
+        IswAddCallback(parent, IswNreportCallback, ViewportReport,
+                       (IswPointer)lv);
 }
 
 static void
 Destroy(Widget w)
 {
     ListViewWidget lv = (ListViewWidget) w;
+    Widget parent = IswParent(w);
+    if (parent != NULL && IswIsSubclass(parent, viewportWidgetClass))
+        IswRemoveCallback(parent, IswNreportCallback, ViewportReport,
+                          (IswPointer)lv);
     if (lv->listView.work_proc_id)
         IswRemoveWorkProc(lv->listView.work_proc_id);
+    DestroyGrips(lv);
     DestroyHeader(lv);
     FreeColumns(lv);
     FreeSelFlags(lv);
@@ -651,6 +891,7 @@ Resize(Widget w)
     }
 
     ComputeMetrics(lv);
+    PositionGrips(lv);
     if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 }
@@ -847,6 +1088,7 @@ SetValues(Widget current, Widget request, Widget desired,
             _IswListViewHeaderSetColumns(dlv->listView.header,
                                          dlv->listView.col_info,
                                          dlv->listView.col_count);
+        SyncGrips(dlv);
         ComputeMetrics(dlv);
         redraw = TRUE;
     }
@@ -863,6 +1105,7 @@ SetValues(Widget current, Widget request, Widget desired,
             CreateHeader(dlv);
         else
             DestroyHeader(dlv);
+        SyncGrips(dlv);
         ComputeMetrics(dlv);
         redraw = TRUE;
     }
@@ -879,6 +1122,11 @@ SetValues(Widget current, Widget request, Widget desired,
             ISW_ARG(&ab, IswNheaderHeight, dlv->listView.header_height);
             IswSetValues(dlv->listView.header, ab.args, ab.count);
             PositionHeader(dlv);
+        }
+        for (int i = 0; i < dlv->listView.grip_count; i++) {
+            IswArgBuilder gab = IswArgBuilderInit();
+            IswArgForeground(&gab, dlv->listView.foreground);
+            IswSetValues(dlv->listView.grips[i], gab.args, gab.count);
         }
         ComputeMetrics(dlv);
         redraw = TRUE;
@@ -929,6 +1177,7 @@ BandRedrawWorkProc(IswPointer closure)
            not replay stale band coordinates. */
         if (lv->listView.band_active)
             BandUpdateSelection(lv);
+        PositionGrips(lv);
         Redisplay(w, NULL, 0);
     }
     return True;
@@ -1307,6 +1556,7 @@ IswListViewAddColumn(Widget w, const char *title, Dimension width, Dimension min
         _IswListViewHeaderSetColumns(lv->listView.header,
                                      lv->listView.col_info,
                                      lv->listView.col_count);
+    SyncGrips(lv);
     ComputeMetrics(lv);
 
     if (IswIsRealized(w))
