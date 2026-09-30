@@ -64,7 +64,8 @@ SOFTWARE.
  *
  *****************************************************************************/
 
-#define DEFAULT_GRIP_SIZE 8
+#define DEFAULT_GRIP_WIDTH  2
+#define DEFAULT_GRIP_HEIGHT 16
 
 /* New fields for the Grip widget class record */
 typedef struct {int empty;} GripClassPart;

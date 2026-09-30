@@ -65,7 +65,7 @@ SOFTWARE.
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
-#include <ISW/Grip.h>
+#include <ISW/GripP.h>
 #include <ISW/PanedP.h>
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
@@ -1050,6 +1050,10 @@ CreateGrip(Widget child)
     }
 
     IswArgCursor(&ab, cursor);
+    if (IsVert(pw)) {
+        IswArgWidth(&ab, DEFAULT_GRIP_HEIGHT);
+        IswArgHeight(&ab, DEFAULT_GRIP_WIDTH);
+    }
     PaneInfo(child)->grip = IswCreateWidget("grip", gripWidgetClass, (Widget)pw,
 					   ab.args, ab.count);
 
@@ -1542,6 +1546,7 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
     PanedWidget old_pw = (PanedWidget) old;
     PanedWidget new_pw = (PanedWidget) new;
     Boolean redisplay = FALSE;
+    Widget *childP;
 
     if ( (old_pw->paned.cursor != new_pw->paned.cursor) && IswIsRealized(new)) {
         _IswSetWindowCursor(new, new_pw->paned.cursor);
@@ -1568,6 +1573,18 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
 	    new_pw->core.width = 0;
 	else
 	    new_pw->core.height = 0;
+
+	ForAllPanes(new_pw, childP) {
+	    if (HasGrip(*childP)) {
+	        Widget grip = PaneInfo(*childP)->grip;
+	        if (IsVert(new_pw))
+	            IswResizeWidget(grip, DEFAULT_GRIP_HEIGHT, DEFAULT_GRIP_WIDTH,
+	                            grip->core.border_width);
+	        else
+	            IswResizeWidget(grip, DEFAULT_GRIP_WIDTH, DEFAULT_GRIP_HEIGHT,
+	                            grip->core.border_width);
+	    }
+	}
 
 	new_pw->paned.resize_children_to_pref = TRUE;
         ChangeManaged(new);	/* Seems weird, but does the right thing. */

@@ -73,12 +73,12 @@ SOFTWARE.
  cursor		     Cursor		Cursor		None
  cursorName	     Cursor		String		NULL
  destroyCallback     Callback		Pointer		NULL
- height		     Height		Dimension	8
+ height		     Height		Dimension	16
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  pointerColor	     Foreground		Pixel		IswDefaultForeground
  pointerColorBackground Background	Pixel		IswDefaultBackground
  sensitive	     Sensitive		Boolean		True
- width		     Width		Dimension	8
+ width		     Width		Dimension	2
  x		     Position		Position	0
  y		     Position		Position	0
 

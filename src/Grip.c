@@ -62,10 +62,10 @@ SOFTWARE.
 static IswResource resources[] = {
    {IswNwidth, IswCWidth, IswRDimension, sizeof(Dimension),
       IswOffsetOf(GripRec, core.width), IswRImmediate,
-      (IswPointer) DEFAULT_GRIP_SIZE},
+      (IswPointer) DEFAULT_GRIP_WIDTH},
    {IswNheight, IswCHeight, IswRDimension, sizeof(Dimension),
       IswOffsetOf(GripRec, core.height), IswRImmediate,
-      (IswPointer) DEFAULT_GRIP_SIZE},
+      (IswPointer) DEFAULT_GRIP_HEIGHT},
    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
       IswOffsetOf(GripRec, core.background_pixel), IswRString,
       IswDefaultForeground},
