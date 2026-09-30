@@ -653,6 +653,8 @@ SyncGrips(ListViewWidget lv)
         IswArgTranslations(&ab, grip_xlations);
         IswArgForeground(&ab, lv->listView.foreground);
         IswArgCursorName(&ab, "sb_h_double_arrow");
+        IswArgWidth(&ab, 2);
+        IswArgHeight(&ab, 16);
         Widget grip = IswCreateWidget("grip", gripWidgetClass, w,
                                       ab.args, ab.count);
         IswAddCallback(grip, IswNcallback, HandleGrip, (IswPointer)lv);
