@@ -567,8 +567,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   if(ctx->core.corner_radius > 0) {
     if(ctx->text.r_margin.left < ctx->core.corner_radius) ctx->text.r_margin.left = ctx->core.corner_radius;
     if(ctx->text.r_margin.right < ctx->core.corner_radius) ctx->text.r_margin.right = ctx->core.corner_radius;
-    if(ctx->text.r_margin.top < ctx->core.corner_radius) ctx->text.r_margin.top = ctx->core.corner_radius;
-    if(ctx->text.r_margin.bottom < ctx->core.corner_radius) ctx->text.r_margin.bottom = ctx->core.corner_radius;
   }
 
   ctx->text.lt.lines = 0;
