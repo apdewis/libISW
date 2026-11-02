@@ -42,8 +42,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/TextP.h>
 #include <ISW/ISWRender.h>
 
+/* Baseline offset within a line slot: optical cap-height centering, so the
+ * slot's spare height is split evenly above and below the glyphs. */
 static int ScaledAscent(TextSinkObject sink) {
-    return ISWScaledFontAscent(IswParent((Widget)sink), sink->text_sink.font);
+    Widget w = IswParent((Widget)sink);
+    return (ISWScaledFontHeight(w, sink->text_sink.font) +
+            ISWScaledFontCapHeight(w, sink->text_sink.font)) / 2;
 }
 static int ScaledFontHeight(TextSinkObject sink) {
     return ISWScaledFontHeight(IswParent((Widget)sink), sink->text_sink.font);
