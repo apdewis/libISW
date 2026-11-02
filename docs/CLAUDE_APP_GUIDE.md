@@ -664,8 +664,10 @@ Selection rules for a nested tree:
 `foreground`, `font` (header text), `selectCallback`, `activateCallback`,
 `pivotCallback`.
 
-**Constraint resources (per child):** `selectable`, `listBoxRowHeight`,
-`separator`; for group children additionally `pivotLabel`, `pivotOpen`,
+**Constraint resources (per child):** `selectable`, `listBoxRowHeight`
+(on a group child: its header band height; headers are never shorter
+than a single-line text row), `separator`; for group children
+additionally `pivotLabel`, `pivotOpen`,
 `pivotImage`, `pivotImageOpen` (SVG/PNG chevron overrides).
 
 **API:** `IswListBoxGetSelected`, `IswListBoxGetSelectedChildren`,

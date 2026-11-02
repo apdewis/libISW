@@ -34,11 +34,14 @@
 
 #define DOUBLE_CLICK_MS 400
 
-/* Group header metrics.  The chevron zone is a square of the header
-   height at the left edge; the open body is indented past it. */
-#define GROUP_HEADER_VPAD 3   /* padding above/below header text */
+/* Group header metrics.  The chevron zone is a square of the font height
+   plus GROUP_HEADER_VPAD at the left edge, vertically centred in the
+   header band; the open body is indented past it. */
+#define GROUP_HEADER_VPAD 3   /* chevron zone padding above/below text height */
 #define GROUP_ICON_PAD    3   /* chevron inset within its square zone */
 #define GROUP_LABEL_GAP   4   /* gap between chevron zone and header text */
+#define ROW_TEXT_VPAD     6   /* single-line ListBoxRow padding above/below
+                                 text: rowPadding 4 + Label internalHeight 2 */
 
 static const char pivot_closed_svg[] =
     "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'>"
@@ -242,13 +245,36 @@ SelectionRoot(ListBoxWidget lbw)
     return (ListBoxWidget)w;
 }
 
+/* Square chevron zone at the left of a group header; also the indent of
+   an open group's body.  Font-derived only, so the chevron's size does
+   not follow the header band height. */
 static Dimension
-HeaderHeight(ListBoxWidget lbw)
+ChevronZone(ListBoxWidget lbw)
 {
     if (lbw->listBox.font)
         return (Dimension)(ISWScaledFontHeight((Widget)lbw, lbw->listBox.font)
                            + 2 * GROUP_HEADER_VPAD);
     return 20;
+}
+
+/* Header band height of group child: never shorter than a single-line
+   row (the child's listBoxRowHeight if set), nor the chevron zone. */
+static Dimension
+HeaderHeight(ListBoxWidget lbw, Widget child)
+{
+    ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
+    Dimension zone = ChevronZone(lbw);
+    Dimension row_h;
+
+    if (lbc->listBox.row_height > 0)
+        row_h = lbc->listBox.row_height;
+    else if (lbw->listBox.font)
+        row_h = (Dimension)(ISWScaledFontHeight((Widget)lbw, lbw->listBox.font)
+                            + 2 * ROW_TEXT_VPAD);
+    else
+        row_h = 20;
+
+    return (row_h > zone) ? row_h : zone;
 }
 
 static int
@@ -314,7 +340,7 @@ typedef enum { HitNone, HitRow, HitHeader, HitChevron } HitZone;
 static HitZone
 HitTestEx(ListBoxWidget lbw, int x, int y, Widget *child_out)
 {
-    Dimension header_h = HeaderHeight(lbw);
+    Dimension zone = ChevronZone(lbw);
 
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
@@ -323,9 +349,9 @@ HitTestEx(ListBoxWidget lbw, int x, int y, Widget *child_out)
 
         if (IsGroup(child)) {
             int hy = lbc->listBox.header_y;
-            if (y >= hy && y < hy + (int)header_h) {
+            if (y >= hy && y < hy + (int)HeaderHeight(lbw, child)) {
                 *child_out = child;
-                return (x < (int)header_h) ? HitChevron : HitHeader;
+                return (x < (int)zone) ? HitChevron : HitHeader;
             }
         } else {
             int cy = child->core.y;
@@ -601,7 +627,6 @@ static Dimension
 ComputeTotalHeight(ListBoxWidget lbw)
 {
     Dimension spacing = lbw->listBox.row_spacing;
-    Dimension header_h = HeaderHeight(lbw);
     Dimension total = spacing;
     Boolean any = False;
 
@@ -616,7 +641,7 @@ ComputeTotalHeight(ListBoxWidget lbw)
             /* Body height is content-derived (recursive), never the
                child's core height: an empty group's core height is the
                100px constructor default and nothing ever corrects it. */
-            h = header_h;
+            h = HeaderHeight(lbw, child);
             if (lbc->listBox.pivot_open)
                 h += ComputeTotalHeight((ListBoxWidget)child)
                      + _IswBorderVert(bs);
@@ -644,7 +669,7 @@ DoLayout(ListBoxWidget lbw, Boolean position)
     Widget w = (Widget)lbw;
     Position y = (Position)lbw->listBox.row_spacing;
     Boolean first = True;
-    Dimension header_h = HeaderHeight(lbw);
+    Dimension zone = ChevronZone(lbw);
 
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
@@ -659,15 +684,15 @@ DoLayout(ListBoxWidget lbw, Boolean position)
         if (IsGroup(child)) {
             if (position)
                 lbc->listBox.header_y = y;
-            y += (Position)header_h;
+            y += (Position)HeaderHeight(lbw, child);
             if (lbc->listBox.pivot_open) {
                 Dimension body_h = ComputeTotalHeight((ListBoxWidget)child);
-                Dimension child_w = (w->core.width > header_h)
-                    ? w->core.width - header_h : 1;
+                Dimension child_w = (w->core.width > zone)
+                    ? w->core.width - zone : 1;
                 if (child_w > (Dimension)_IswBorderHoriz(bs))
                     child_w -= (Dimension)_IswBorderHoriz(bs);
                 if (position)
-                    IswConfigureWidget(child, (Position)header_h, y, child_w,
+                    IswConfigureWidget(child, (Position)zone, y, child_w,
                                        body_h, child->core.border_width);
                 y += (Position)(body_h + _IswBorderVert(bs));
             }
@@ -908,14 +933,14 @@ GroupIcon(ListBoxWidget lbw, ListBoxConstraints lbc)
 
 static void
 DrawGroupChevron(ListBoxWidget lbw, ListBoxConstraints lbc,
-                 Position hy, Dimension header_h, Pixel fg)
+                 Position hy, Dimension header_h, Dimension zone, Pixel fg)
 {
     ISWRenderContext *ctx = lbw->listBox.render_ctx;
     ISWImage *img = GroupIcon(lbw, lbc);
     if (!img) return;
 
-    int icon_sz = ((int)header_h > 2 * GROUP_ICON_PAD)
-        ? (int)header_h - 2 * GROUP_ICON_PAD : (int)header_h;
+    int icon_sz = ((int)zone > 2 * GROUP_ICON_PAD)
+        ? (int)zone - 2 * GROUP_ICON_PAD : (int)zone;
     float sf = (float)ISWScaleFactor((Widget)lbw);
     unsigned int raster_sz = (unsigned int)(icon_sz * sf + 0.5f);
     unsigned int rw, rh;
@@ -970,6 +995,7 @@ DrawGroupHeader(ListBoxWidget lbw, Widget child, Dimension header_h)
     Widget w = (Widget)lbw;
     ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
     Position hy = lbc->listBox.header_y;
+    Dimension zone = ChevronZone(lbw);
     Pixel fg = lbc->listBox.selected ? w->core.background_pixel
                                      : lbw->listBox.foreground;
 
@@ -978,7 +1004,7 @@ DrawGroupHeader(ListBoxWidget lbw, Widget child, Dimension header_h)
         ISWRenderFillRectangle(ctx, 0, hy, w->core.width, header_h);
     }
 
-    DrawGroupChevron(lbw, lbc, hy, header_h, fg);
+    DrawGroupChevron(lbw, lbc, hy, header_h, zone, fg);
 
     if (lbc->listBox.pivot_label && lbw->listBox.font) {
         int len = (int)strlen(lbc->listBox.pivot_label);
@@ -988,7 +1014,7 @@ DrawGroupHeader(ListBoxWidget lbw, Widget child, Dimension header_h)
             ISWRenderSetFont(ctx, lbw->listBox.font);
             ISWRenderSetColor(ctx, fg);
             ISWRenderDrawString(ctx, lbc->listBox.pivot_label, len,
-                                (int)header_h + GROUP_LABEL_GAP, baseline);
+                                (int)zone + GROUP_LABEL_GAP, baseline);
         }
     }
 }
@@ -1008,7 +1034,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     if (!ctx) return;
 
     ListBoxWidget root = SelectionRoot(lbw);
-    Dimension header_h = HeaderHeight(lbw);
 
     ISWRenderBegin(ctx);
 
@@ -1023,6 +1048,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int entry_y, entry_h;
 
         if (IsGroup(child)) {
+            Dimension header_h = HeaderHeight(lbw, child);
             entry_y = lbc->listBox.header_y;
             entry_h = (int)header_h;
             if (lbc->listBox.pivot_open)
@@ -1056,7 +1082,8 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
             ListBoxConstraints flbc =
                 (ListBoxConstraints)focused->core.constraints;
             ISWRenderStrokeRectangle(ctx, 1, flbc->listBox.header_y,
-                                     (int)w->core.width - 2, (int)header_h);
+                                     (int)w->core.width - 2,
+                                     (int)HeaderHeight(lbw, focused));
         } else {
             IswBorderSides fbs = _IswGetBorderSides(focused);
             ISWRenderStrokeRectangle(ctx,
