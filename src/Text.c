@@ -962,7 +962,17 @@ _BuildLineTable(TextWidget ctx, ISWTextPosition position,
   else
     width = IswMax(0, ((int)ctx->core.width - (int)HMargins(ctx)));
 
-  y = ( (line == 0) ? ctx->text.margin.top : lt->y );
+  if (line == 0) {
+    /* Split the leftover height (less than one line) evenly above and
+       below the text block instead of leaving it all at the bottom. */
+    int slack = (int)ctx->core.height - VMargins(ctx)
+                - IswTextSinkMaxHeight(ctx->text.sink, ctx->text.lt.lines);
+    y = ctx->text.margin.top;
+    if (ctx->text.lt.lines > 0 && slack > 0)
+      y += slack / 2;
+  }
+  else
+    y = lt->y;
 
   /* CONSTCOND */
   while ( TRUE ) {
