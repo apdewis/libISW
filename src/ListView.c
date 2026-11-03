@@ -970,8 +970,10 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
 
         /* Selection highlight */
         if (lv->listView.sel_flags && lv->listView.sel_flags[row]) {
-            ISWRenderSetColor(ctx, lv->listView.foreground);
-            ISWRenderFillRectangle(ctx, 0, ry, (int)w->core.width, (int)row_h);
+            Pixel sc = lv->simple.active_color != (Pixel)-1
+                     ? lv->simple.active_color : lv->listView.foreground;
+            ISWRenderSetColor(ctx, sc);
+            ISWRenderFillRectangle(ctx, 0, ry + 1, (int)w->core.width, (int)row_h - 2);
         }
 
         /* Drop-target highlight */
@@ -1009,10 +1011,7 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
 
             if (text) {
                 int len = (int)strlen(text);
-                if (lv->listView.sel_flags && lv->listView.sel_flags[row])
-                    ISWRenderSetColor(ctx, w->core.background_pixel);
-                else
-                    ISWRenderSetColor(ctx, lv->listView.foreground);
+                ISWRenderSetColor(ctx, lv->listView.foreground);
 
                 ISWRenderSetClipRectangle(ctx, cx + (int)pad_x, ry,
                                           (int)cw - 2 * (int)pad_x, (int)row_h);
@@ -1040,8 +1039,7 @@ DrawBand(ListViewWidget lv, ISWRenderContext *ctx)
     int bh = abs(lv->listView.band_cur_y - lv->listView.band_start_y);
 
     if (bw > 0 && bh > 0) {
-        Pixel bc = lv->simple.active_color != (Pixel)-1
-                 ? lv->simple.active_color : lv->listView.foreground;
+        Pixel bc = lv->listView.foreground;
         ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(bc, 0.15));
         ISWRenderFillRectangle(ctx, bx, by, bw, bh);
         ISWRenderSetColor(ctx, bc);
