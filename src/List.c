@@ -490,10 +490,11 @@ ItemInRectangle(Widget w, int ul, int lr, int item)
  * simple calculation and probably much faster than using Xlib and a clip mask.
  *
  *  x, y - ul corner of the area item occupies.
- *  color - the pixel color to fill the background with */
+ *  color - the pixel color to fill the background with
+ *  inset - pixels left unfilled at the top and bottom of the item */
 
 static void
-HighlightBackground(Widget w, int x, int y, Pixel color)
+HighlightBackground(Widget w, int x, int y, Pixel color, int inset)
 {
     ListWidget lw = (ListWidget) w;
 
@@ -525,7 +526,8 @@ HighlightBackground(Widget w, int x, int y, Pixel color)
     }
 
     ISWRenderSetColor(lw->list.render_ctx, color);
-    ISWRenderFillRectangle(lw->list.render_ctx, x, y, width, height);
+    ISWRenderFillRectangle(lw->list.render_ctx, x, y + inset,
+                           width, (int)height - 2 * inset);
 }
 
 
@@ -541,7 +543,6 @@ static void
 PaintItemName(Widget w, int item)
 {
     const char * str;
-    Boolean is_highlighted;
     int x, y, str_y;
     ListWidget lw = (ListWidget) w;
 
@@ -562,26 +563,25 @@ PaintItemName(Widget w, int item)
 
     str_y = y + ISWScaledFontAscent(w, lw->list.font);
 
+    Pixel hc = lw->simple.active_color != (Pixel)-1
+             ? lw->simple.active_color : lw->list.foreground;
+
     if (item == lw->list.is_highlighted) {
         if (item == lw->list.highlight) {
-            is_highlighted = True;
-            HighlightBackground(w, x, y, lw->list.foreground);
+            HighlightBackground(w, x, y, hc, 1);
         }
         else {
-            is_highlighted = False;
-            HighlightBackground(w, x, y, lw->core.background_pixel);
+            HighlightBackground(w, x, y, lw->core.background_pixel, 0);
             lw->list.is_highlighted = NO_HIGHLIGHT;
         }
     }
     else {
         if (item == lw->list.highlight) {
-            is_highlighted = True;
-            HighlightBackground(w, x, y, lw->list.foreground);
+            HighlightBackground(w, x, y, hc, 1);
             lw->list.is_highlighted = item;
         }
         else {
-            is_highlighted = False;
-            HighlightBackground(w, x, y, lw->core.background_pixel);
+            HighlightBackground(w, x, y, lw->core.background_pixel, 0);
         }
     }
 
@@ -608,14 +608,7 @@ PaintItemName(Widget w, int item)
                                   clip_rect.x, clip_rect.y,
                                   clip_rect.width, clip_rect.height);
 
-        /* Determine text color: highlighted items swap fg/bg */
-        Pixel text_color;
-        if (is_highlighted)
-            text_color = lw->core.background_pixel;
-        else
-            text_color = lw->list.foreground;
-
-        ISWRenderSetColor(lw->list.render_ctx, text_color);
+        ISWRenderSetColor(lw->list.render_ctx, lw->list.foreground);
         if (lw->list.font)
             ISWRenderSetFont(lw->list.render_ctx, lw->list.font);
         ISWRenderDrawString(lw->list.render_ctx, str, strlen(str), x, str_y);

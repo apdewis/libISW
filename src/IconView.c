@@ -900,10 +900,12 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
         /* Selection highlight */
         if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
-            ISWRenderSetColor(ctx, iw->iconView.foreground);
-            ISWRenderFillRectangle(ctx, cx, cy,
+            Pixel sc = iw->simple.active_color != (Pixel)-1
+                     ? iw->simple.active_color : iw->iconView.foreground;
+            ISWRenderSetColor(ctx, sc);
+            ISWRenderFillRectangle(ctx, cx, cy + 1,
                                    iw->iconView.cell_w - spacing,
-                                   rh - spacing);
+                                   rh - spacing - 2);
         }
 
         /* Icon */
@@ -912,13 +914,10 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
             IconViewItemCache *ic = &iw->iconView.cache[i];
             int ix = cx + ((int)(iw->iconView.cell_w - spacing) - (int)icon_sz) / 2;
             if (ISWImageIsMonochrome(ic->image)) {
-                Boolean selected = iw->iconView.sel_flags &&
-                                   iw->iconView.sel_flags[i];
-                Pixel fg = selected ? w->core.background_pixel
-                                    : iw->iconView.foreground;
+                Pixel fg = iw->iconView.foreground;
                 /* Retained tinted mask: tint + upload once, redraw by handle.
-                   Re-tint only when the raster or the tint colour changes
-                   (selection flip), not on every repaint. */
+                   Re-tint only when the raster or the tint colour changes,
+                   not on every repaint. */
                 if (ic->mask_raster != raster || ic->mask_fg != fg ||
                     ic->mask_handle == 0) {
                     if (ic->mask_handle)
@@ -963,11 +962,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
             int max_lines = (cell_bottom - label_top) / label_line_h;
             if (max_lines < 1) max_lines = 1;
 
-            if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
-                ISWRenderSetColor(ctx, w->core.background_pixel);
-            } else {
-                ISWRenderSetColor(ctx, iw->iconView.foreground);
-            }
+            ISWRenderSetColor(ctx, iw->iconView.foreground);
             DrawWrappedLabel(ctx, iw->iconView.labels[i],
                              label_w, max_lines, cx, ly, label_line_h);
         }
@@ -1004,8 +999,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int bh = abs(iw->iconView.band_cur_y - iw->iconView.band_start_y);
 
         if (bw > 0 && bh > 0) {
-            Pixel bc = iw->simple.active_color != (Pixel)-1
-                     ? iw->simple.active_color : iw->iconView.foreground;
+            Pixel bc = iw->iconView.foreground;
             ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(bc, 0.15));
             ISWRenderFillRectangle(ctx, bx, by, bw, bh);
             ISWRenderSetColor(ctx, bc);

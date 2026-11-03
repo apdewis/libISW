@@ -661,7 +661,8 @@ Selection rules for a nested tree:
   widget (same collapse rules apply, callbacks fire).
 
 **Widget resources:** `selectionMode`, `rowSpacing`, `showSeparators`,
-`foreground`, `font` (header text), `selectCallback`, `activateCallback`,
+`foreground`, `activeColor` (selection fill; defaults to `foreground`),
+`font` (header text), `selectCallback`, `activateCallback`,
 `pivotCallback`.
 
 **Constraint resources (per child):** `selectable`, `listBoxRowHeight`

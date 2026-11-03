@@ -103,6 +103,8 @@ static IswResource resources[] = {
         Offset(show_separators), IswRImmediate, (IswPointer)False},
     {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
         Offset(foreground), IswRString, IswDefaultForeground},
+    {IswNactiveColor, IswCActiveColor, IswRPixel, sizeof(Pixel),
+        Offset(active_color), IswRImmediate, (IswPointer)(Pixel)-1},
     {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
         Offset(font), IswRString, IswDefaultFont},
     {IswNselectCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
@@ -417,25 +419,26 @@ InstallChildHandlers(Widget child, Widget listbox)
 }
 
 static void
-SwapFgBg(Widget w, Pixel fg, Pixel bg)
+SetTreeBackground(Widget w, Pixel bg)
 {
-    Pixel old_bg = w->core.background_pixel;
-    w->core.background_pixel = (old_bg == bg) ? fg : bg;
-
-    if (IswIsSubclass(w, labelWidgetClass)) {
-        LabelWidget lw = (LabelWidget)w;
-        Pixel old_fg = lw->label.foreground;
-        lw->label.foreground = (old_fg == fg) ? bg : fg;
-    }
+    w->core.background_pixel = bg;
 
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget)w;
         for (Cardinal i = 0; i < cw->composite.num_children; i++) {
             if (IswIsSubclass(cw->composite.children[i], listBoxWidgetClass))
                 continue;
-            SwapFgBg(cw->composite.children[i], fg, bg);
+            SetTreeBackground(cw->composite.children[i], bg);
         }
     }
+}
+
+/* Selection fill colour: activeColor, falling back to foreground. */
+static Pixel
+SelectionColor(ListBoxWidget lbw)
+{
+    return lbw->listBox.active_color != (Pixel)-1
+         ? lbw->listBox.active_color : lbw->listBox.foreground;
 }
 
 static void
@@ -443,23 +446,6 @@ ExposeTree(Widget w)
 {
     if (IswIsRealized(w))
         _IswRepaintWindowless(w);
-}
-
-static Pixel
-FindLabelFg(Widget w)
-{
-    if (IswIsSubclass(w, labelWidgetClass))
-        return ((LabelWidget)w)->label.foreground;
-    if (IswIsComposite(w)) {
-        CompositeWidget cw = (CompositeWidget)w;
-        for (Cardinal i = 0; i < cw->composite.num_children; i++) {
-            if (IswIsSubclass(cw->composite.children[i], listBoxWidgetClass))
-                continue;
-            Pixel fg = FindLabelFg(cw->composite.children[i]);
-            if (fg != (Pixel)-1) return fg;
-        }
-    }
-    return (Pixel)-1;
 }
 
 static void
@@ -470,16 +456,18 @@ ApplySelectionVisual(ListBoxWidget lbw, Widget child, Boolean select)
     if (select == lbc->listBox.selected) return;
     lbc->listBox.selected = select;
 
-    /* A group's highlight is its parent-drawn header band; never swap
-       colors inside the nested widget. */
+    /* A group's highlight is its parent-drawn header band; never recolor
+       inside the nested widget. */
     if (IsGroup(child))
         return;
 
-    Pixel fg = FindLabelFg(child);
-    Pixel bg = child->core.background_pixel;
-    if (fg == (Pixel)-1) fg = ~bg;
-
-    SwapFgBg(child, fg, bg);
+    if (select) {
+        lbc->listBox.saved_bg = child->core.background_pixel;
+        SetTreeBackground(child,
+                          SelectionColor((ListBoxWidget)IswParent(child)));
+    } else {
+        SetTreeBackground(child, lbc->listBox.saved_bg);
+    }
     ExposeTree(child);
 }
 
@@ -996,12 +984,11 @@ DrawGroupHeader(ListBoxWidget lbw, Widget child, Dimension header_h)
     ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
     Position hy = lbc->listBox.header_y;
     Dimension zone = ChevronZone(lbw);
-    Pixel fg = lbc->listBox.selected ? w->core.background_pixel
-                                     : lbw->listBox.foreground;
+    Pixel fg = lbw->listBox.foreground;
 
     if (lbc->listBox.selected) {
-        ISWRenderSetColor(ctx, lbw->listBox.foreground);
-        ISWRenderFillRectangle(ctx, 0, hy, w->core.width, header_h);
+        ISWRenderSetColor(ctx, SelectionColor(lbw));
+        ISWRenderFillRectangle(ctx, 0, hy + 1, w->core.width, header_h - 2);
     }
 
     DrawGroupChevron(lbw, lbc, hy, header_h, zone, fg);
@@ -1058,9 +1045,9 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
             entry_y = child->core.y;
             entry_h = (int)child->core.height + _IswBorderVert(bs);
             if (lbc->listBox.selected) {
-                ISWRenderSetColor(ctx, lbw->listBox.foreground);
-                ISWRenderFillRectangle(ctx, 0, entry_y,
-                                       w->core.width, (unsigned)entry_h);
+                ISWRenderSetColor(ctx, SelectionColor(lbw));
+                ISWRenderFillRectangle(ctx, 0, entry_y + 1,
+                                       w->core.width, (unsigned)(entry_h - 2));
             }
         }
 
@@ -1121,18 +1108,15 @@ SetValues(Widget current, Widget request, Widget new,
         redisplay = True;
     }
 
-    if (cur->listBox.foreground != lbw->listBox.foreground) {
+    if (cur->listBox.foreground != lbw->listBox.foreground ||
+        cur->listBox.active_color != lbw->listBox.active_color) {
         for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
             Widget child = lbw->composite.children[i];
             if (!IswIsManaged(child)) continue;
             ListBoxConstraints lbc =
                 (ListBoxConstraints)child->core.constraints;
-            if (lbc->listBox.selected) {
-                Pixel fg = FindLabelFg(child);
-                Pixel bg = child->core.background_pixel;
-                if (fg == (Pixel)-1) fg = ~bg;
-                SwapFgBg(child, fg, bg);
-                SwapFgBg(child, fg, bg);
+            if (lbc->listBox.selected && !IsGroup(child)) {
+                SetTreeBackground(child, SelectionColor(lbw));
                 ExposeTree(child);
             }
         }
@@ -1159,6 +1143,7 @@ ConstraintInitialize(Widget request, Widget new,
     (void)request; (void)args; (void)num_args;
 
     lbc->listBox.selected = False;
+    lbc->listBox.saved_bg = new->core.background_pixel;
 
     lbc->listBox.pivot_label = lbc->listBox.pivot_label
         ? IswNewString(lbc->listBox.pivot_label) : NULL;

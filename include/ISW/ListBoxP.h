@@ -29,6 +29,7 @@ typedef struct {
     Dimension               row_spacing;
     Boolean                 show_separators;
     Pixel                   foreground;
+    Pixel                   active_color;   /* selection fill; -1 = foreground */
     IswFontStruct           *font;
     IswCallbackList         select_callback;
     IswCallbackList         activate_callback;
@@ -62,6 +63,7 @@ typedef struct {
 
     /* private */
     Boolean   selected;
+    Pixel     saved_bg;           /* entry background restored on deselect */
 
     /* group header render state (valid only for nested-ListBox children) */
     Position  header_y;           /* top of the header band, set by layout */
