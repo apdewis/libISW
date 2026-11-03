@@ -82,6 +82,8 @@ static IswResource resources[] = {
      offset(right_margin), IswRImmediate, (IswPointer) 4},
   {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
      offset(foreground), IswRString, IswDefaultForeground},
+  {IswNactiveColor, IswCActiveColor, IswRPixel, sizeof(Pixel),
+     offset(active_color), IswRImmediate, (IswPointer)(Pixel)-1},
   {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
      offset(font), IswRString, IswDefaultFont},
   {IswNmenuName, IswCMenuName, IswRString, sizeof(String),
@@ -295,7 +297,9 @@ static void
 Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     Boolean highlighted_active = False;
+    Boolean inverted;
     SmeBSBObject entry = (SmeBSBObject) w;
+    Boolean has_active = entry->sme_bsb.active_color != (Pixel)-1;
     Dimension s = ((SimpleMenuWidget)IswParent(w))->core.border_width;  /* inset from SimpleMenu's 1px drawn border */
     int	font_ascent = 0, font_descent = 0, y_loc;
 
@@ -320,7 +324,9 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         if ( w == IswSimpleMenuGetActiveEntry(IswParent(w)) ) {
             if (ctx) {
                 ISWRenderBegin(ctx);
-                ISWRenderSetColor(ctx, entry->sme_bsb.foreground);
+                ISWRenderSetColor(ctx, has_active
+                                       ? entry->sme_bsb.active_color
+                                       : entry->sme_bsb.foreground);
                 ISWRenderFillRectangle(ctx,
                                        s, y_loc + s,
                                        entry->rectangle.width - 2 * s,
@@ -341,6 +347,10 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
             }
         }
     }
+
+    /* Without an activeColor the highlight is a foreground fill, so
+       text drawn over it swaps to the background colour. */
+    inverted = highlighted_active && !has_active;
 
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
@@ -386,7 +396,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
                   (font_ascent + font_descent)) / 2 + font_ascent;
 
     if (ctx) {
-        Pixel text_color = highlighted_active
+        Pixel text_color = inverted
             ? IswParent(w)->core.background_pixel
             : entry->sme_bsb.foreground;
         ISWRenderBegin(ctx);
@@ -445,7 +455,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	    int accel_w = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font,
 	    				 entry->sme_bsb.accelerator_text, accel_len);
 	    int accel_x = entry->rectangle.width - entry->sme_bsb.right_margin - accel_w;
-	    Pixel accel_color = highlighted_active
+	    Pixel accel_color = inverted
 	        ? IswParent(w)->core.background_pixel
 	        : entry->sme_bsb.foreground;
 
@@ -465,7 +475,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	    int ax = entry->rectangle.width - entry->sme_bsb.right_margin / 2 - sz;
 	    int ay = entry->rectangle.y + entry->rectangle.height / 2;
 	    IswPoint tri[3];
-	    Pixel arrow_color = highlighted_active
+	    Pixel arrow_color = inverted
 	        ? IswParent(w)->core.background_pixel
 	        : entry->sme_bsb.foreground;
 
@@ -526,7 +536,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     }
 
     if ( font_changed ||
-	(old_entry->sme_bsb.foreground != entry->sme_bsb.foreground) ) {
+	(old_entry->sme_bsb.foreground != entry->sme_bsb.foreground) ||
+	(old_entry->sme_bsb.active_color != entry->sme_bsb.active_color) ) {
 	ret_val = TRUE;
     }
 

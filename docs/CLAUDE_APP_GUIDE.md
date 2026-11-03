@@ -321,6 +321,7 @@ Widget menubar = IswMainWindowGetMenuBar(main_w);
 | `IswNleftMargin` | Dimension | 4 | Left margin |
 | `IswNrightMargin` | Dimension | 4 | Right margin |
 | `IswNforeground` | Pixel | IswDefaultForeground | Text color |
+| `IswNactiveColor` | Pixel | unset | Highlight fill; text stays `foreground`. Unset = inverted fg/bg highlight |
 | `IswNfont` | IswFontStruct* | IswDefaultFont | Font |
 | `IswNfontSet` | ISWFontSet* | IswDefaultFontSet | Font (internationalized) |
 | `IswNunderline` | int | -1 | Keyboard mnemonic underline index |

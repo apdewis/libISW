@@ -85,6 +85,7 @@ typedef struct {
     ISWImage *right_image;
     Dimension left_margin, right_margin; /* left and right margins. */
     Pixel foreground;		/* foreground color. */
+    Pixel active_color;		/* highlight fill; -1 = inverted fg/bg */
     IswFontStruct * font;		/* The font to show label in. */
     IswJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */

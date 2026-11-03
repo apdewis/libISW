@@ -1011,6 +1011,7 @@ OpenDropdown(Widget w)
         IswArgBuilderReset(&ab);
         IswArgLabel(&ab, lw->list.list[i]);
         IswArgForeground(&ab, lw->list.foreground);
+        IswArgActiveColor(&ab, lw->simple.active_color);
         if (lw->list.font) {
             IswArgFont(&ab, lw->list.font);
         }
