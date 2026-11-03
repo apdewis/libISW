@@ -232,8 +232,9 @@ PaintText(Widget w, Boolean highlight, Position x, Position y,
     {
         int asc = ScaledAscent(sink);
         int desc = ScaledDescent(sink);
-        Pixel bg = highlight ?
-            sink->text_sink.foreground : sink->text_sink.background;
+        Pixel sel = ctx->simple.active_color != (Pixel)-1
+                  ? ctx->simple.active_color : sink->text_sink.foreground;
+        Pixel bg = highlight ? sel : sink->text_sink.background;
         ISWRenderSave(sink->text_sink.render_ctx);
         ISWRenderSetColor(sink->text_sink.render_ctx, bg);
         ISWRenderFillRectangle(sink->text_sink.render_ctx,
@@ -267,8 +268,10 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     unsigned char buf[BUFSIZ];
     int j, k;
     ISWTextBlock blk;
-    Pixel fg_color = highlight ? sink->text_sink.background : sink->text_sink.foreground;
-    Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
+    Pixel sel = ctx->simple.active_color != (Pixel)-1
+              ? ctx->simple.active_color : sink->text_sink.foreground;
+    Pixel fg_color = sink->text_sink.foreground;
+    Pixel bg_color = highlight ? sel : sink->text_sink.background;
 
     if (!sink->text_sink.echo) return;
 
