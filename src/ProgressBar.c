@@ -194,7 +194,10 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	return;
     }
 
-    ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
+    Boolean split = pbw->simple.active_color == (Pixel)-1;
+    Pixel ac = split ? pbw->progress_bar.foreground : pbw->simple.active_color;
+
+    ISWRenderSetColor(ctx, w->core.border_pixel);
     ISWRenderSetLineWidth(ctx, 1.0);
     RoundedRectPath(ctx, bx, by, bw, bh, r);
     ISWRenderStroke(ctx);
@@ -221,7 +224,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	}
 
 	double fill_r = r * 0.5;
-	ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
+	ISWRenderSetColor(ctx, ac);
 	RoundedRectPath(ctx, fill_x, fill_y, fill_w, fill_h, fill_r);
 	ISWRenderFill(ctx);
     }
@@ -269,11 +272,13 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
 	    /* Pass 1: foreground text clipped to unfilled region */
 	    ISWRenderSave(ctx);
-	    ISWRenderPathBegin(ctx);
-	    ISWRenderPathRectangle(ctx, 0, 0, fill_x + fill_w, w->core.height);
-	    ISWRenderPathRectangle(ctx, 0, 0, w->core.width, w->core.height);
-	    ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
-	    ISWRenderClip(ctx);
+	    if (split) {
+		ISWRenderPathBegin(ctx);
+		ISWRenderPathRectangle(ctx, 0, 0, fill_x + fill_w, w->core.height);
+		ISWRenderPathRectangle(ctx, 0, 0, w->core.width, w->core.height);
+		ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
+		ISWRenderClip(ctx);
+	    }
 	    if (text_scale < 1.0f) {
 		ISWRenderTranslate(ctx, tx, ty);
 		ISWRenderScale(ctx, text_scale, text_scale);
@@ -285,36 +290,40 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	    ISWRenderShowText(ctx, buf);
 	    ISWRenderRestore(ctx);
 
-	    /* Recalculate for pass 2 (restore resets transform) */
-	    tx = (w->core.width - eff_text_w) / 2.0;
-	    ty = (w->core.height - eff_text_h) / 2.0 + eff_ascent;
+	    if (split) {
+		/* Recalculate for pass 2 (restore resets transform) */
+		tx = (w->core.width - eff_text_w) / 2.0;
+		ty = (w->core.height - eff_text_h) / 2.0 + eff_ascent;
 
-	    /* Pass 2: background text clipped to filled region */
-	    ISWRenderSave(ctx);
-	    ISWRenderPathBegin(ctx);
-	    ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
-	    ISWRenderClip(ctx);
-	    if (text_scale < 1.0f) {
-		ISWRenderTranslate(ctx, tx, ty);
-		ISWRenderScale(ctx, text_scale, text_scale);
-		tx = 0;
-		ty = 0;
+		/* Pass 2: background text clipped to filled region */
+		ISWRenderSave(ctx);
+		ISWRenderPathBegin(ctx);
+		ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
+		ISWRenderClip(ctx);
+		if (text_scale < 1.0f) {
+		    ISWRenderTranslate(ctx, tx, ty);
+		    ISWRenderScale(ctx, text_scale, text_scale);
+		    tx = 0;
+		    ty = 0;
+		}
+		ISWRenderSetColor(ctx, w->core.background_pixel);
+		ISWRenderPathMoveTo(ctx, tx, ty);
+		ISWRenderShowText(ctx, buf);
+		ISWRenderRestore(ctx);
 	    }
-	    ISWRenderSetColor(ctx, w->core.background_pixel);
-	    ISWRenderPathMoveTo(ctx, tx, ty);
-	    ISWRenderShowText(ctx, buf);
-	    ISWRenderRestore(ctx);
 	} else {
 	    double tx = -eff_text_w / 2.0;
 	    double ty = eff_ascent - eff_text_h / 2.0;
 
 	    /* Pass 1: foreground text clipped to unfilled region */
 	    ISWRenderSave(ctx);
-	    ISWRenderPathBegin(ctx);
-	    ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
-	    ISWRenderPathRectangle(ctx, 0, 0, w->core.width, w->core.height);
-	    ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
-	    ISWRenderClip(ctx);
+	    if (split) {
+		ISWRenderPathBegin(ctx);
+		ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
+		ISWRenderPathRectangle(ctx, 0, 0, w->core.width, w->core.height);
+		ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
+		ISWRenderClip(ctx);
+	    }
 	    ISWRenderTranslate(ctx, w->core.width / 2.0, w->core.height / 2.0);
 	    ISWRenderRotate(ctx, -M_PI / 2.0);
 	    if (text_scale < 1.0f)
@@ -324,19 +333,21 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	    ISWRenderShowText(ctx, buf);
 	    ISWRenderRestore(ctx);
 
-	    /* Pass 2: background text clipped to filled region */
-	    ISWRenderSave(ctx);
-	    ISWRenderPathBegin(ctx);
-	    ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
-	    ISWRenderClip(ctx);
-	    ISWRenderTranslate(ctx, w->core.width / 2.0, w->core.height / 2.0);
-	    ISWRenderRotate(ctx, -M_PI / 2.0);
-	    if (text_scale < 1.0f)
-		ISWRenderScale(ctx, text_scale, text_scale);
-	    ISWRenderSetColor(ctx, w->core.background_pixel);
-	    ISWRenderPathMoveTo(ctx, tx, ty);
-	    ISWRenderShowText(ctx, buf);
-	    ISWRenderRestore(ctx);
+	    if (split) {
+		/* Pass 2: background text clipped to filled region */
+		ISWRenderSave(ctx);
+		ISWRenderPathBegin(ctx);
+		ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
+		ISWRenderClip(ctx);
+		ISWRenderTranslate(ctx, w->core.width / 2.0, w->core.height / 2.0);
+		ISWRenderRotate(ctx, -M_PI / 2.0);
+		if (text_scale < 1.0f)
+		    ISWRenderScale(ctx, text_scale, text_scale);
+		ISWRenderSetColor(ctx, w->core.background_pixel);
+		ISWRenderPathMoveTo(ctx, tx, ty);
+		ISWRenderShowText(ctx, buf);
+		ISWRenderRestore(ctx);
+	    }
 	}
     }
 
