@@ -403,8 +403,9 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
         /* Save collapsed height: one row + borders */
         lw->list.collapsed_height = lw->list.row_height
             + 2 * lw->list.internal_height;
-        /* Collapse to single row */
-        lw->core.height = lw->list.collapsed_height;
+        /* Collapse to single row unless the caller set a height */
+        if (HeightFree( lw ))
+            lw->core.height = lw->list.collapsed_height;
     }
 
 } /* Initialize */
