@@ -220,6 +220,7 @@
 #define IswArgRowSpacing(ab, v)                 ISW_ARG((ab), IswNrowSpacing, (v))
 #define IswArgVerticalList(ab, v)               ISW_ARG((ab), IswNverticalList, (v))
 #define IswArgDropdownMode(ab, v)               ISW_ARG((ab), IswNdropdownMode, (v))
+#define IswArgButtonBackground(ab, v)           ISW_ARG((ab), IswNbuttonBackground, (v))
 
 /* Scrollbar */
 #define IswArgMinimumThumb(ab, v)               ISW_ARG((ab), IswNminimumThumb, (v))

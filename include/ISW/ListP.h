@@ -99,6 +99,8 @@ typedef struct {
 
     /* dropdown mode */
     Boolean     dropdown;       /* if True, behaves as dropdown selector */
+    Pixel       button_background; /* fill behind the dropdown arrow;
+                                      (Pixel)-1 = use core background */
     int         selected_item;  /* private: currently selected item index */
     Dimension   collapsed_height; /* private: height when collapsed */
     Widget      popup_shell;    /* private: SimpleMenu for dropdown popup */

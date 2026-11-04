@@ -87,7 +87,7 @@ void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 | Scrollbar | `scrollbarWidgetClass` | `<ISW/Scrollbar.h>` | Scrollbar with arrows |
 | Slider | `sliderWidgetClass` | `<ISW/Slider.h>` | Slider with numeric display |
 | SpinBox | `spinBoxWidgetClass` | `<ISW/SpinBox.h>` | Numeric input with +/- buttons |
-| ComboBox | `comboBoxWidgetClass` | `<ISW/ComboBox.h>` | Dropdown selection |
+| ComboBox | `comboBoxWidgetClass` | `<ISW/ComboBox.h>` | Dropdown selection; `buttonBackground` (Pixel) fills the arrow zone; unset = widget background |
 
 ### Display
 

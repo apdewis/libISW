@@ -131,6 +131,8 @@ static IswResource resources[] = {
         offset(list.callback), IswRCallback, NULL},
     {IswNdropdownMode, IswCDropdownMode, IswRBoolean, sizeof(Boolean),
 	offset(list.dropdown), IswRImmediate, (IswPointer) False},
+    {IswNbuttonBackground, IswCButtonBackground, IswRPixel, sizeof(Pixel),
+	offset(list.button_background), IswRImmediate, (IswPointer)(Pixel)-1},
 };
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
@@ -683,9 +685,23 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
                 ISWRenderDrawString(lw->list.render_ctx, str, strlen(str),
                                     x, str_y);
 
-                /* Draw dropdown arrow indicator on the right */
+                /* Arrow zone on the right, same column width and divider
+                 * as the SpinBox buttons */
+                int btn_w = 27;
+                int zone_x = (int)w->core.width - btn_w;
+                ISWRenderSetColor(lw->list.render_ctx,
+                    lw->list.button_background != (Pixel)-1
+                    ? lw->list.button_background : w->core.background_pixel);
+                ISWRenderFillRectangle(lw->list.render_ctx, zone_x, 0,
+                                       btn_w, w->core.height);
+                ISWRenderSetColor(lw->list.render_ctx, w->core.border_pixel);
+                ISWRenderSetLineWidth(lw->list.render_ctx, 1.0);
+                ISWRenderDrawLine(lw->list.render_ctx, zone_x - 1, 0,
+                                  zone_x - 1, (int)w->core.height);
+
+                /* Draw dropdown arrow indicator centred in the zone */
                 int arrow_size = lw->list.row_height / 3;
-                int ax = w->core.width - lw->list.internal_width - arrow_size * 2;
+                int ax = zone_x + (btn_w - arrow_size * 2) / 2;
                 int ay = (w->core.height - arrow_size) / 2;
                 ISWRenderSetColor(lw->list.render_ctx, lw->list.foreground);
                 ISWRenderDrawLine(lw->list.render_ctx,
@@ -1294,6 +1310,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     if (  (cl->list.foreground       != nl->list.foreground)       ||
    (cl->core.background_pixel != nl->core.background_pixel) ||
+   (cl->list.button_background != nl->list.button_background) ||
    font_changed ) {
         redraw = TRUE;
     }

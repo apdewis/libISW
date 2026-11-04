@@ -135,6 +135,8 @@ in this Software without prior written authorization from the X Consortium.
 #define IswNverticalList "verticalList"
 #define IswNdropdownMode "dropdownMode"
 #define IswCDropdownMode "DropdownMode"
+#define IswNbuttonBackground "buttonBackground"
+#define IswCButtonBackground "ButtonBackground"
 
 /* Class record constants */
 
