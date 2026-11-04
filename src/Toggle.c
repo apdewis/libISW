@@ -593,7 +593,7 @@ RemoveFromRadioGroup(Widget w)
 
 static void
 DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
-             double scale, Pixel fg)
+             double scale, Pixel outline, Pixel ac, Pixel fg)
 {
     if (!ctx) return;
 
@@ -601,18 +601,24 @@ DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
 
     ISWRenderSave(ctx);
 
+    /* Translucent active-colour fill behind the pip if checked */
+    if (checked) {
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(ac, 0.5));
+        ISWRenderFillRoundedRectangle(ctx, x, y, size, size, r);
+    }
+
     /* Rounded rect outline (always visible) */
+    ISWRenderSetColor(ctx, outline);
     ISWRenderStrokeRoundedRectangle(ctx, x, y, size, size, r, 1.5 * scale);
 
     /* Solid pip if checked, centered in the box */
     if (checked) {
-        int inset = (int)(2.5 * scale);
+        int inset = (int)(3.5 * scale);
         int pip = size - 2 * inset;
-        ISWRenderSetColor(ctx, ISW_PIXEL_SET_ALPHA(fg, 0xBF));
+        ISWRenderSetColor(ctx, fg);
         ISWRenderFillRoundedRectangle(ctx,
             x + (size - pip) / 2, y + (size - pip) / 2,
             pip, pip, r * 0.5);
-        ISWRenderSetColor(ctx, fg);
     }
 
     ISWRenderRestore(ctx);
@@ -629,7 +635,7 @@ DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
 
 static void
 DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
-                double scale, Pixel fg)
+                double scale, Pixel outline, Pixel ac, Pixel fg)
 {
     if (!ctx) return;
 
@@ -639,7 +645,17 @@ DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
     double cy = y + size / 2.0;
     double radius = size / 2.0;
 
+    /* Translucent active-colour fill behind the pip if selected */
+    if (selected) {
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(ac, 0.5));
+        ISWRenderPathBegin(ctx);
+        ISWRenderPathNewSubPath(ctx);
+        ISWRenderPathArc(ctx, cx, cy, radius, 0, 2.0 * M_PI);
+        ISWRenderFill(ctx);
+    }
+
     /* Draw circle outline (always visible) */
+    ISWRenderSetColor(ctx, outline);
     ISWRenderSetLineWidth(ctx, 1.5 * scale);
     ISWRenderPathBegin(ctx);
     ISWRenderPathNewSubPath(ctx);
@@ -648,12 +664,11 @@ DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
 
     /* Draw filled center circle if selected */
     if (selected) {
-        ISWRenderSetColor(ctx, ISW_PIXEL_SET_ALPHA(fg, 0xBF));
+        ISWRenderSetColor(ctx, fg);
         ISWRenderPathBegin(ctx);
         ISWRenderPathNewSubPath(ctx);
-        ISWRenderPathArc(ctx, cx, cy, radius * 0.45, 0, 2.0 * M_PI);
+        ISWRenderPathArc(ctx, cx, cy, radius * 0.35, 0, 2.0 * M_PI);
         ISWRenderFill(ctx);
-        ISWRenderSetColor(ctx, fg);
     }
     ISWRenderRestore(ctx);
 }
@@ -670,7 +685,7 @@ DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
 
 static void
 DrawSlideToggle(ISWRenderContext *ctx, int x, int y, int size, Boolean on,
-                Pixel fg, Pixel bg)
+                Pixel outline, Pixel ac, Pixel fg, Pixel bg)
 {
     if (!ctx) return;
 
@@ -680,12 +695,13 @@ DrawSlideToggle(ISWRenderContext *ctx, int x, int y, int size, Boolean on,
     double trough_r = trough_h / 2.0;
 
     if (on) {
-        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(fg, 0.3));
-        ISWRenderFillStrokeRoundedRectangle(ctx, x, trough_y,
-            trough_w, trough_h, trough_r, 1);
-    } else
-        ISWRenderStrokeRoundedRectangle(ctx, x, trough_y,
-            trough_w, trough_h, trough_r, 1.0);
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(ac, 0.3));
+        ISWRenderFillRoundedRectangle(ctx, x, trough_y,
+            trough_w, trough_h, trough_r);
+    }
+    ISWRenderSetColor(ctx, on ? ac : outline);
+    ISWRenderStrokeRoundedRectangle(ctx, x, trough_y,
+        trough_w, trough_h, trough_r, 1.0);
 
     int inset = 2;
     int thumb_size = trough_h - 2 * inset;
@@ -772,15 +788,21 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         shape = (tw->toggle.radio_group != NULL)
               ? IswToggleShapeRadio : IswToggleShapeCheckbox;
 
+    Pixel ac = tw->simple.active_color != (Pixel)-1
+             ? tw->simple.active_color : tw->label.foreground;
+
     if (shape == IswToggleShapeSlide) {
         DrawSlideToggle(ctx, x, y, indicator_size, tw->command.set,
+                        tw->core.border_pixel, ac,
                         tw->label.foreground, tw->core.background_pixel);
     } else if (shape == IswToggleShapeRadio) {
         DrawRadioButton(ctx, x, y, indicator_size, tw->command.set, 1.0,
-                        tw->label.foreground);
+                        tw->command.set ? ac : tw->core.border_pixel,
+                        ac, tw->label.foreground);
     } else {
         DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, 1.0,
-                     tw->label.foreground);
+                     tw->command.set ? ac : tw->core.border_pixel,
+                     ac, tw->label.foreground);
     }
 
     _IswFocusMgrDrawRing(w, ctx, tw->label.foreground, 2.0);
