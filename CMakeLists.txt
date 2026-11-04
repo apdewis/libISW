@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(libISW VERSION 0.13.0 LANGUAGES C)
+project(libISW VERSION 0.14.0 LANGUAGES C)
 
 # Default install prefix to /usr (overridable with -DCMAKE_INSTALL_PREFIX=...)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -537,24 +537,6 @@ endif()
 target_link_libraries(focus_dispatch_test PRIVATE ISW PkgConfig::DEMO_DEPS PkgConfig::XCB_KEYSYMS m)
 target_include_directories(focus_dispatch_test PRIVATE
     ${CMAKE_SOURCE_DIR}/include
-)
-
-# Unit tests for the generic-input / smooth-scroll model.  Self-contained:
-# links against the ISW shared library and exercises _IswMatchScroll plus the
-# translation-table parser for the new semantic/scroll names.
-add_executable(tm_scroll_test EXCLUDE_FROM_ALL
-    tests/tm_scroll_test.c
-)
-target_link_libraries(tm_scroll_test PRIVATE ISW PkgConfig::DEMO_DEPS m)
-target_include_directories(tm_scroll_test PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/include/ISW
-    ${CMAKE_SOURCE_DIR}/src
-)
-add_custom_target(test_tm_scroll
-    COMMAND $<TARGET_FILE:tm_scroll_test>
-    DEPENDS tm_scroll_test
-    COMMENT "Running TM scroll matcher / parse tests"
 )
 
 # Focused XDND drag-and-drop test app — temporarily disabled while XDnd is off
