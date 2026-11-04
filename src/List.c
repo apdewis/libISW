@@ -670,12 +670,11 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
             int sel = lw->list.selected_item;
             int str_y;
             int x = lw->list.internal_width;
-            int y = lw->list.internal_height;
             String str = lw->list.list[sel];
 
-            str_y = y + ISWScaledFontAscent(w, lw->list.font);
+            str_y = ((int)w->core.height
+                     + ISWScaledFontCapHeight(w, lw->list.font)) / 2;
             x += lw->list.column_space / 2;
-            str_y += lw->list.row_space / 2;
 
             if (lw->list.render_ctx) {
                 ISWRenderSetColor(lw->list.render_ctx, lw->list.foreground);
