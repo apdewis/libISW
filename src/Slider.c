@@ -456,6 +456,8 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     Dimension half_thumb = THUMB_SIZE / 2;
     int off_x = TrackZoneOffsetX(sw);
     int off_y = TrackZoneOffsetY(sw);
+    Pixel ac = sw->simple.active_color != (Pixel)-1
+             ? sw->simple.active_color : sw->slider.foreground;
 
     ISWRenderBegin(ctx);
 
@@ -476,9 +478,18 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int track_y = track_center_y - (int)track_thick / 2;
         int track_x = off_x + (int)half_thumb;
         int track_w = (int)sw->core.width - off_x - (int)thumb_w;
-        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(sw->slider.foreground, 0.3));
-        ISWRenderFillStrokeRoundedRectangle(ctx, track_x, track_y, track_w, track_thick,
-                                          track_thick / 2.0, 1);
+        ISWRenderSetColor(ctx, sw->core.border_pixel);
+        ISWRenderStrokeRoundedRectangle(ctx, track_x, track_y, track_w, track_thick,
+                                        track_thick / 2.0, 1.0);
+        int fill_w = sw->slider.thumb_pos - track_x;
+        if (fill_w > 0) {
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(ac, 0.5));
+            ISWRenderFillRoundedRectangle(ctx, track_x, track_y, fill_w, track_thick,
+                                          track_thick / 2.0);
+            ISWRenderSetColor(ctx, ac);
+            ISWRenderStrokeRoundedRectangle(ctx, track_x, track_y, fill_w, track_thick,
+                                            track_thick / 2.0, 1.0);
+        }
         ISWRenderSetColor(ctx, sw->slider.foreground);
 
         /* Tick marks (below track) */
@@ -518,9 +529,18 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int track_x = track_center_x - (int)track_thick / 2;
         int track_top = off_y + (int)half_thumb;
         int track_h = (int)sw->core.height - off_y - (int)thumb_w;
-        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(sw->slider.foreground, 0.3));
-        ISWRenderFillStrokeRoundedRectangle(ctx, track_x, track_top, track_thick, track_h,
-                                          track_thick / 2.0, 1);
+        ISWRenderSetColor(ctx, sw->core.border_pixel);
+        ISWRenderStrokeRoundedRectangle(ctx, track_x, track_top, track_thick, track_h,
+                                        track_thick / 2.0, 1.0);
+        int fill_h = track_top + track_h - sw->slider.thumb_pos;
+        if (fill_h > 0) {
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(ac, 0.5));
+            ISWRenderFillRoundedRectangle(ctx, track_x, sw->slider.thumb_pos,
+                                          track_thick, fill_h, track_thick / 2.0);
+            ISWRenderSetColor(ctx, ac);
+            ISWRenderStrokeRoundedRectangle(ctx, track_x, sw->slider.thumb_pos,
+                                            track_thick, fill_h, track_thick / 2.0, 1.0);
+        }
         ISWRenderSetColor(ctx, sw->slider.foreground);
 
         /* Tick marks (right of track) */
