@@ -63,6 +63,7 @@ SOFTWARE.
 #include <ISW/Scrollbar.h>
 #include <ISW/IswScroll.h>
 #include <ISW/TextP.h>
+#include <ISW/TextSinkP.h>
 #include <ISW/IswArgMacros.h>
 #include "IntrinsicI.h"
 #include <ctype.h>		/* for isprint() */
@@ -113,6 +114,13 @@ static Boolean LineAndXYForPosition(TextWidget, ISWTextPosition, int *,
 static ISWTextPosition FindGoodPosition(TextWidget, ISWTextPosition);
 static ISWTextPosition _BuildLineTable(TextWidget, ISWTextPosition,
                                        ISWTextPosition, int);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec textFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
 
 void _IswTextAlterSelection(TextWidget, IswTextSelectionMode,
                             IswTextSelectionAction, String *, Cardinal *);
@@ -331,6 +339,8 @@ ClassInitialize(void)
     FMT8BIT = IswFmt8Bit = IswPermStringToQuark("FMT8BIT");
 
   IswInitializeWidgetSet();
+  textFontMetricsExt.record_type =
+      IswPermStringToQuark(IswNfontMetricsExtension);
 
 /*
  * Set the number of actions.
@@ -650,6 +660,40 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       CreateHScrollBar(ctx);
   }
 
+}
+
+/*
+ * IswFontMetricsExtension: the font rendering settings changed.  Re-derive the
+ * sink's pixel tab stops from its character tab stops (which also rebuilds the
+ * line table), then re-run the scrollbar and resize policies as Realize does.
+ */
+static void
+Remeasure(Widget w)
+{
+  TextWidget ctx = (TextWidget) w;
+  TextSinkObject sink = (TextSinkObject) ctx->text.sink;
+  int i, n;
+  int *tabs;
+
+  if (sink == NULL)
+    return;
+
+  n = sink->text_sink.tab_count;
+  if (n > 0) {
+    tabs = (int *) IswMalloc((Cardinal) (n * sizeof(int)));
+    for (i = 0; i < n; i++)
+      tabs[i] = sink->text_sink.char_tabs[i];
+    IswTextSinkSetTabs((Widget) sink, n, tabs);
+    IswFree((char *) tabs);
+  }
+  else
+    _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
+
+  if (IswIsRealized(w) || w->core.windowless_realized) {
+    _IswTextSetScrollBars(ctx);
+    _IswTextCheckResize(ctx);
+  }
+  ctx->text.redisplay_needed = True;
 }
 
 static void
@@ -3128,7 +3172,7 @@ TextClassRec textClassRec = {
     /* tm_table         */      NULL,    /* set in ClassInitialize */
     /* query_geometry   */	IswInheritQueryGeometry,
     /* display_accelerator*/	IswInheritDisplayAccelerator,
-    /* extension	*/	NULL
+    /* extension	*/	(IswPointer) &textFontMetricsExt
   },
   { /* Simple fields */
     /* change_sensitive	*/	ChangeSensitive,

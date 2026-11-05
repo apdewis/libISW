@@ -919,4 +919,57 @@ int ISWScaledFontAscent(Widget widget, IswFontStruct *font);
  */
 int ISWScaledFontCapHeight(Widget widget, IswFontStruct *font);
 
+/*
+ * =================================================================
+ * System font rendering settings
+ * =================================================================
+ *
+ * Text follows the system font rendering settings automatically: antialias,
+ * hinting, hint style, subpixel order and LCD filter come from the Xft.*
+ * resources in the display's resource database (Xft.antialias, Xft.hinting,
+ * Xft.hintstyle, Xft.rgba, Xft.lcdfilter — RESOURCE_MANAGER on X11), and
+ * fontconfig's per-font result (fonts.conf) for anything not set there.  A
+ * resource beats the fonts.conf value for the same property.
+ *
+ * Subpixel (LCD) text is used only where the text lands on opaque pixels;
+ * over transparent or partially transparent areas it renders grayscale.
+ */
+
+/*
+ * ISWRenderReloadFontOptions - Apply changed font rendering settings live.
+ *
+ * Re-reads the display's resource database (RESOURCE_MANAGER) and the Xft.*
+ * settings, drops every font, glyph and measurement cache built under the old
+ * settings, re-measures every widget that caches text metrics (see
+ * IswFontMetricsExtension) and redraws all of the application's shells on
+ * `dpy`.  Call it from the application's own context (e.g. a SIGHUP handler
+ * deferred to the event loop, or a PropertyNotify on RESOURCE_MANAGER), not
+ * from inside a widget's expose.
+ */
+void ISWRenderReloadFontOptions(IswDisplay dpy);
+
+/*
+ * IswFontMetricsExtension - widget class extension for metric changes.
+ *
+ * A widget class that caches text measurements (preferred sizes, row heights,
+ * tab stops, ...) chains this record on its core class `extension` field.
+ * ISWRenderReloadFontOptions calls `remeasure` on every widget whose class (or
+ * nearest superclass) carries one, children before parents, so the widget can
+ * recompute its cached metrics and request its new preferred size.  Redraw is
+ * handled by the caller.
+ *
+ * record_type cannot be a compile-time constant: set it to
+ * IswPermStringToQuark(IswNfontMetricsExtension) in class_initialize.
+ */
+#define IswNfontMetricsExtension "IswFontMetricsExtension"
+#define IswFontMetricsExtensionVersion 1L
+
+typedef struct {
+    IswPointer    next_extension;  /* next record in the class's chain */
+    IswQuark      record_type;     /* IswPermStringToQuark(IswNfontMetricsExtension) */
+    long          version;         /* IswFontMetricsExtensionVersion */
+    Cardinal      record_size;     /* sizeof(IswFontMetricsExtensionRec) */
+    void        (*remeasure)(Widget); /* recompute cached text metrics */
+} IswFontMetricsExtensionRec, *IswFontMetricsExtension;
+
 #endif /* _ISWRender_h */

@@ -297,6 +297,13 @@ struct _IswPlatformRenderOps {
     int (*scaled_font_height)(Widget widget, IswFontStruct *font);
     int (*scaled_font_ascent)(Widget widget, IswFontStruct *font);
     int (*scaled_font_cap_height)(Widget widget, IswFontStruct *font);
+
+    /* Re-read the system font rendering settings (antialias, hinting,
+       subpixel order, LCD filter) for `dpy` and drop the backend's font state
+       resolved under the old ones (faces, glyph caches, measurement caches).
+       Called by ISWRenderReloadFontOptions after the resource database has
+       been reloaded; the caller re-measures and redraws the widgets. */
+    void (*reload_font_options)(IswDisplay dpy);
 };
 
 #endif /* _ISWRenderOps_h */

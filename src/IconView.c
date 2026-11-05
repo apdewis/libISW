@@ -117,12 +117,21 @@ static IswActionsRec actions[] = {
     {"HandleFocus",     HandleFocus},
 };
 
+static void ClassInitialize(void);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec iconViewFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
+
 IconViewClassRec iconViewClassRec = {
   { /* core */
     (WidgetClass) &simpleClassRec,
     "IconView",
     sizeof(IconViewRec),
-    IswInitializeWidgetSet,
+    ClassInitialize,
     NULL,
     FALSE,
     Initialize,
@@ -150,7 +159,7 @@ IconViewClassRec iconViewClassRec = {
     defaultTranslations,
     IswInheritQueryGeometry,
     IswInheritDisplayAccelerator,
-    NULL
+    (IswPointer) &iconViewFontMetricsExt
   },
   { /* simple */
     IswInheritChangeSensitive
@@ -665,6 +674,22 @@ Resize(Widget w)
     ComputeLayout(iw);
     if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
+}
+
+static void
+ClassInitialize(void)
+{
+    IswInitializeWidgetSet();
+    iconViewFontMetricsExt.record_type =
+        IswPermStringToQuark(IswNfontMetricsExtension);
+}
+
+/* IswFontMetricsExtension: the font rendering settings changed — the label
+   line height feeds the cell / row layout. */
+static void
+Remeasure(Widget w)
+{
+    ComputeLayout((IconViewWidget) w);
 }
 
 /*

@@ -157,6 +157,14 @@ static void OpenDropdown(Widget);
 static void DropdownMenuSelect(Widget, IswPointer, IswPointer);
 static void DropdownPopdownCB(Widget, IswPointer, IswPointer);
 static void DropdownDismissHandler(Widget, IswPointer, IswEvent *, Boolean *);
+static void ClassInitialize(void);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec listFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
 
 /* Per-entry callback data for the dropdown popup. Carries the owning
  * list widget so DropdownMenuSelect does not have to recover it from
@@ -186,7 +194,7 @@ ListClassRec listClassRec = {
     /* superclass	  	*/	(WidgetClass) &simpleClassRec,
     /* class_name	  	*/	"List",
     /* widget_size	  	*/	sizeof(ListRec),
-    /* class_initialize   	*/	IswInitializeWidgetSet,
+    /* class_initialize   	*/	ClassInitialize,
     /* class_part_initialize	*/	NULL,
     /* class_inited       	*/	FALSE,
     /* initialize	  	*/	Initialize,
@@ -213,6 +221,8 @@ ListClassRec listClassRec = {
     /* callback_private   	*/	NULL,
     /* tm_table		   	*/	defaultTranslations,
    /* query_geometry		*/      PreferredGeom,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
+    /* extension		*/	(IswPointer) &listFontMetricsExt
   },
 /* Simple class fields initialization */
   {
@@ -290,6 +300,14 @@ CalculatedValues(Widget w)
  */
 
 static void
+ClassInitialize(void)
+{
+    IswInitializeWidgetSet();
+    listFontMetricsExt.record_type =
+        IswPermStringToQuark(IswNfontMetricsExtension);
+}
+
+static void
 ResetList(Widget w, Boolean changex, Boolean changey)
 {
     Dimension width = w->core.width;
@@ -299,6 +317,24 @@ ResetList(Widget w, Boolean changex, Boolean changey)
 
     if( Layout( w, changex, changey, &width, &height ) )
       ChangeSize( w, width, height );
+}
+
+/*	Function Name: Remeasure
+ *	Description: IswFontMetricsExtension — the font rendering settings
+ *		     changed; recompute the row height and column width and
+ *		     re-lay out, resizing along the axes left free.
+ *	Arguments: w - the list widget.
+ *	Returns: none.
+ */
+
+static void
+Remeasure(Widget w)
+{
+    ListWidget lw = (ListWidget) w;
+
+    lw->list.row_height = ISWScaledFontHeight(w, lw->list.font)
+                          + lw->list.row_space;
+    ResetList(w, WidthFree(lw), HeightFree(lw));
 }
 
 /*	Function Name: ChangeSize.

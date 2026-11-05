@@ -28,6 +28,8 @@ extern double _IswGetScaleFactor(IswDisplay dpy);
 #include <ISW/IntrinsicP.h>
 #include <ISW/CompositeP.h>
 #include <ISW/SimpleP.h>
+#include <ISW/ShellP.h>
+#include <ISW/HookObjI.h>
 
 /*
  * =================================================================
@@ -1653,5 +1655,139 @@ ISWScaledFontCapHeight(Widget widget, IswFontStruct *font)
     if (rops && rops->scaled_font_cap_height)
         return rops->scaled_font_cap_height(widget, font);
     return 0;
+}
+
+/*
+ * =================================================================
+ * Font settings reload
+ * =================================================================
+ */
+
+/* Nearest IswFontMetricsExtension on a class or its superclasses. */
+static IswFontMetricsExtension
+_isw_font_metrics_ext(WidgetClass wc)
+{
+    IswQuark q = IswPermStringToQuark(IswNfontMetricsExtension);
+
+    for (; wc != NULL; wc = wc->core_class.superclass) {
+        IswFontMetricsExtension ext = (IswFontMetricsExtension)
+            IswGetClassExtension(wc, IswOffsetOf(CoreClassRec,
+                                                 core_class.extension),
+                                 q, IswFontMetricsExtensionVersion,
+                                 sizeof(IswFontMetricsExtensionRec));
+        if (ext != NULL && ext->remeasure != NULL)
+            return ext;
+    }
+    return NULL;
+}
+
+/* Re-measure a subtree bottom-up (children's new preferred sizes feed their
+   parents' layout), mark it composite_dirty so the redraw repaints every
+   widget instead of reusing retained surfaces, and collect the realized
+   shells in it (popups included) for the redraw. */
+static void
+_isw_remeasure_tree(Widget w, Widget **shells, Cardinal *n, Cardinal *cap)
+{
+    IswFontMetricsExtension ext;
+    Cardinal i;
+
+    if (w == NULL || w->core.being_destroyed)
+        return;
+
+    if (IswIsComposite(w)) {
+        CompositeWidget cw = (CompositeWidget) w;
+        for (i = 0; i < cw->composite.num_children; i++)
+            _isw_remeasure_tree(cw->composite.children[i], shells, n, cap);
+    }
+    if (IswIsSubclass(w, simpleWidgetClass)) {
+        SimpleWidgetClass sc = (SimpleWidgetClass) w->core.widget_class;
+        if (sc->simple_class.nth_windowless_child != NULL) {
+            int k = 0;
+            Widget child;
+            while ((child = (*sc->simple_class.nth_windowless_child)(w, k++))
+                   != NULL)
+                _isw_remeasure_tree(child, shells, n, cap);
+        }
+    }
+    if (IswIsWidget(w)) {
+        for (i = 0; i < w->core.num_popups; i++)
+            _isw_remeasure_tree(w->core.popup_list[i], shells, n, cap);
+    }
+
+    ext = _isw_font_metrics_ext(w->core.widget_class);
+    if (ext != NULL)
+        (*ext->remeasure)(w);
+
+    if (IswIsWidget(w)) {
+        w->core.composite_dirty = True;
+        if (IswIsShell(w) && IswIsRealized(w)) {
+            if (*n == *cap) {
+                *cap = *cap ? *cap * 2 : 8;
+                *shells = (Widget *) IswRealloc((char *) *shells,
+                                                *cap * sizeof(Widget));
+            }
+            (*shells)[(*n)++] = w;
+        }
+    }
+}
+
+void
+ISWRenderReloadFontOptions(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    const IswPlatformRenderOps *rops = _IswPlatformRenderOpsActive();
+    HookObject ho;
+    Widget *roots, *shells = NULL;
+    Cardinal nroots, n = 0, cap = 0, i;
+    int s, nscreens;
+
+    if (dpy == NULL)
+        return;
+
+    /* Re-read RESOURCE_MANAGER (and the rest of the user database). */
+    nscreens = ops->display->screen_count(dpy);
+    for (s = 0; s < nscreens; s++)
+        IswReloadScreenDatabase(ops->display->screen(dpy, s));
+
+    /* Backend: new settings, font/glyph/measure caches dropped. */
+    if (rops && rops->reload_font_options)
+        rops->reload_font_options(dpy);
+    ISWFontMetricCacheFlush(ISWFontMetricCacheGet());
+
+    /* Re-measure every application shell's tree.  The hook object's shell
+       list can change under the walk (a remeasure may create widgets), so
+       walk a snapshot. */
+    ho = (HookObject) IswHooksOfDisplay(dpy);
+    nroots = ho->hooks.num_shells;
+    if (nroots == 0)
+        return;
+    roots = (Widget *) IswMalloc(nroots * sizeof(Widget));
+    memcpy(roots, ho->hooks.shells, nroots * sizeof(Widget));
+    for (i = 0; i < nroots; i++)
+        _isw_remeasure_tree(roots[i], &shells, &n, &cap);
+    IswFree((char *) roots);
+
+    /* Redraw: a full-window redraw on every visible shell.  Popup shells that
+       are popped down repaint (everything is marked dirty) when they map. */
+    for (i = 0; i < n; i++) {
+        Widget sh = shells[i];
+        IswEvent ev;
+
+        if (sh->core.being_destroyed)
+            continue;
+        if (IswIsSubclass(sh, shellWidgetClass) &&
+            sh->core.parent != NULL && !((ShellWidget) sh)->shell.popped_up)
+            continue;
+
+        memset(&ev, 0, sizeof(ev));
+        ev.kind = IswRedraw;
+        ev.any.synthetic = 1;
+        ev.any.target = (IswEventTarget) (void *) sh;
+        ev.redraw.width = sh->core.width;
+        ev.redraw.height = sh->core.height;
+        ev.redraw.count = 0;
+        IswDispatchEventToWidget(sh, &ev);
+    }
+    IswFree((char *) shells);
 }
 

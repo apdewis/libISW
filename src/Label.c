@@ -130,6 +130,13 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void ClassInitialize(void);
 static void Destroy(Widget);
 static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec labelFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
 
 LabelClassRec labelClassRec = {
   {
@@ -165,7 +172,7 @@ LabelClassRec labelClassRec = {
     /* tm_table		   	*/	NULL,
     /* query_geometry		*/	QueryGeometry,
     /* display_accelerator	*/	IswInheritDisplayAccelerator,
-    /* extension		*/	NULL
+    /* extension		*/	(IswPointer) &labelFontMetricsExt
   },
 /* Simple class fields initialization */
   {
@@ -220,6 +227,8 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
+    labelFontMetricsExt.record_type =
+        IswPermStringToQuark(IswNfontMetricsExtension);
     QEllipNone   = IswPermStringToQuark("none");
     QEllipStart  = IswPermStringToQuark("start");
     QEllipMiddle = IswPermStringToQuark("middle");
@@ -1019,6 +1028,46 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     return was_resized || redisplay ||
 	   IswIsSensitive(current) != IswIsSensitive(new);
+}
+
+/*
+ * IswFontMetricsExtension: the font rendering settings changed.  Re-measure
+ * the text; along each axis where the label was sized to fit its text, request
+ * the size that fits the new metrics (a size the application fixed is kept).
+ */
+static void
+Remeasure(Widget w)
+{
+    LabelWidget lw = (LabelWidget) w;
+    Dimension old_w, old_h, new_w, new_h;
+    Position dx, dy;
+
+    if (lw->label.image)
+        return;                 /* image takes priority: no text metrics */
+
+    old_w = lw->label.label_width + 2 * lw->label.internal_width +
+            LEFT_OFFSET(lw);
+    old_h = (lw->label.lbm_height > lw->label.label_height
+             ? lw->label.lbm_height : lw->label.label_height) +
+            2 * lw->label.internal_height;
+
+    SetTextWidthAndHeight(lw);
+
+    new_w = lw->label.label_width + 2 * lw->label.internal_width +
+            LEFT_OFFSET(lw);
+    new_h = (lw->label.lbm_height > lw->label.label_height
+             ? lw->label.lbm_height : lw->label.label_height) +
+            2 * lw->label.internal_height;
+
+    if (lw->label.resize) {
+        Dimension want_w = (w->core.width == old_w) ? new_w : w->core.width;
+        Dimension want_h = (w->core.height == old_h) ? new_h : w->core.height;
+        if (want_w != w->core.width || want_h != w->core.height)
+            IswMakeResizeRequest(w, want_w, want_h, NULL, NULL);
+    }
+
+    _Reposition(lw, w->core.width, w->core.height, &dx, &dy);
+    compute_bitmap_offsets(lw);
 }
 
 static void

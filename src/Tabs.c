@@ -97,6 +97,13 @@ static void LayoutChildren(TabsWidget);
 static Dimension TabBarHeight(TabsWidget);
 static Boolean CvtStringToTabSizing(IswDisplay, IswValuePtr, Cardinal *,
                                      IswValuePtr, IswValuePtr, IswPointer *);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec tabsFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
 
 /****************************************************************
  * Class record
@@ -138,7 +145,7 @@ TabsClassRec tabsClassRec = {
     /* tm_table           */   defaultTranslations,
     /* query_geometry     */   IswInheritQueryGeometry,
     /* display_accelerator*/   IswInheritDisplayAccelerator,
-    /* extension          */   NULL
+    /* extension          */   (IswPointer) &tabsFontMetricsExt
    }, {
 /* composite class fields */
     /* geometry_manager   */   GeometryManager,
@@ -389,9 +396,19 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
+    tabsFontMetricsExt.record_type =
+        IswPermStringToQuark(IswNfontMetricsExtension);
     IswSetTypeConverter(IswRString, IswRTabSizing, CvtStringToTabSizing,
                         (IswConvertArgList)NULL, 0,
                         IswCacheNone, (IswDestructor)NULL);
+}
+
+/* IswFontMetricsExtension: the font rendering settings changed — tab widths
+   and the tab bar height (which places the pages) come from the font. */
+static void
+Remeasure(Widget w)
+{
+    LayoutChildren((TabsWidget) w);
 }
 
 /* ARGSUSED */

@@ -73,6 +73,13 @@ static void ConstraintDestroy(Widget);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 static void DoLayout(ListBoxWidget, Boolean);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec listBoxFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
 static void ApplyPivotState(ListBoxWidget, Widget);
 static void FireSelectCallback(ListBoxWidget, ListBoxWidget, Widget, int);
 
@@ -200,7 +207,7 @@ ListBoxClassRec listBoxClassRec = {
     defaultTranslations,
     PreferredGeometry,
     IswInheritDisplayAccelerator,
-    NULL                                 /* extension */
+    (IswPointer) &listBoxFontMetricsExt  /* extension */
   },
   { /* composite_class */
     GeometryManager,
@@ -762,9 +769,23 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
+    listBoxFontMetricsExt.record_type =
+        IswPermStringToQuark(IswNfontMetricsExtension);
     IswSetTypeConverter(IswRString, IswRSelectionMode,
                         CvtStringToSelectionMode,
                         NULL, 0, IswCacheNone, NULL);
+}
+
+/* IswFontMetricsExtension: the font rendering settings changed — group
+   header bands and the chevron indent come from the font; re-lay out the
+   rows as a pivot does. */
+static void
+Remeasure(Widget w)
+{
+    ListBoxWidget lbw = (ListBoxWidget) w;
+
+    DoLayout(lbw, False);
+    DoLayout(lbw, True);
 }
 
 static void

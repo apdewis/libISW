@@ -851,6 +851,18 @@ isw_render_scaled_font_cap_height(Widget w, IswFontStruct *f)
     return cairo_xcb_scaled_font_cap_height(w, f);
 }
 
+static void
+isw_render_reload_font_options(IswDisplay dpy)
+{
+#ifdef HAVE_EGL
+    if (_isw_active_backend == ISW_RENDER_BACKEND_EGL) {
+        egl_reload_font_options(dpy);
+        return;
+    }
+#endif
+    cairo_xcb_reload_font_options(dpy);
+}
+
 const struct _IswPlatformRenderOps isw_platform_xcb_render_ops = {
     .available   = ISWRenderBackendAvailable,
     .detect      = ISWRenderDetectBackend,
@@ -860,6 +872,7 @@ const struct _IswPlatformRenderOps isw_platform_xcb_render_ops = {
     .scaled_font_height     = isw_render_scaled_font_height,
     .scaled_font_ascent     = isw_render_scaled_font_ascent,
     .scaled_font_cap_height = isw_render_scaled_font_cap_height,
+    .reload_font_options    = isw_render_reload_font_options,
 };
 
 /* ---- backend vtable + dispatcher ----------------------------------------- */

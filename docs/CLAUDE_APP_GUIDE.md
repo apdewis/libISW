@@ -412,6 +412,50 @@ Dimension d = ISWScaleDim(widget, 16);       /* 16 → 32 at 2x */
 
 Widgets scale their own internal dimensions automatically. Use `ISWScaleDim` when you need to scale application-level pixel values (padding, icon sizes, etc.).
 
+## Font Rendering Settings
+
+Text follows the system font rendering settings with no application code. The settings come from two places:
+
+- `Xft.antialias`, `Xft.hinting`, `Xft.hintstyle`, `Xft.rgba` and `Xft.lcdfilter` in the display's resource database (`RESOURCE_MANAGER`, read at display open).
+- fontconfig's per-font result (fonts.conf) for anything those resources don't set.
+
+A resource beats the fonts.conf value for the same property. Both backends (Cairo-XCB and EGL) honour them. Subpixel text is drawn only where the text lands on opaque pixels; over transparent or partially transparent areas it renders grayscale.
+
+To apply changed settings without a restart (e.g. on SIGHUP, or a `PropertyNotify` for `RESOURCE_MANAGER`), call this from the event loop, not from inside an expose:
+
+```c
+#include <ISW/ISWRender.h>
+
+ISWRenderReloadFontOptions(IswDisplayOf(toplevel));
+```
+
+It does the following:
+
+- re-reads the resource database;
+- drops all font, glyph and measurement caches;
+- re-measures every widget that caches text metrics;
+- redraws all shells on the display.
+
+A widget that was sized to fit its text resizes to fit the new metrics; a size the application fixed is kept.
+
+A custom widget class that caches text measurements (preferred size, row heights, tab stops) should chain an `IswFontMetricsExtensionRec` on its core class `extension` field. Set `record_type` in `class_initialize`. The reload then calls `remeasure` on its widgets, children before parents:
+
+```c
+static void Remeasure(Widget w);   /* recompute cached metrics, request new size */
+static IswFontMetricsExtensionRec myFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
+/* core_class.extension = (IswPointer) &myFontMetricsExt; */
+
+static void ClassInitialize(void)
+{
+    myFontMetricsExt.record_type = IswPermStringToQuark(IswNfontMetricsExtension);
+}
+```
+
+Subclasses inherit the nearest superclass's record.
+
 ## Form Layout
 
 Form is the primary constraint-based layout. Position children relative to each other:

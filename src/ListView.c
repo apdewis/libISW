@@ -97,6 +97,14 @@ static void DestroyGrips(ListViewWidget);
 static void PositionGrips(ListViewWidget);
 static Widget ListViewHitChild(Widget, int, int, int *, int *);
 static Widget ListViewNthWindowlessChild(Widget, int);
+static void ClassInitialize(void);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec listViewFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
 
 /* Translations for the floating divider grips (Paned's grip pattern) */
 static char gripTranslations[] =
@@ -137,7 +145,7 @@ ListViewClassRec listViewClassRec = {
     (WidgetClass) &simpleClassRec,
     "ListView",
     sizeof(ListViewRec),
-    IswInitializeWidgetSet,
+    ClassInitialize,
     NULL,
     FALSE,
     Initialize,
@@ -165,7 +173,7 @@ ListViewClassRec listViewClassRec = {
     defaultTranslations,
     QueryGeometry,
     IswInheritDisplayAccelerator,
-    NULL
+    (IswPointer) &listViewFontMetricsExt
   },
   { /* simple */
     IswInheritChangeSensitive,
@@ -896,6 +904,27 @@ Resize(Widget w)
     PositionGrips(lv);
     if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
+}
+
+static void
+ClassInitialize(void)
+{
+    IswInitializeWidgetSet();
+    listViewFontMetricsExt.record_type =
+        IswPermStringToQuark(IswNfontMetricsExtension);
+}
+
+/* IswFontMetricsExtension: the font rendering settings changed — the header
+   height and row height come from the fonts; re-place the header, recompute
+   the row metrics (requesting the new preferred height) and the grips. */
+static void
+Remeasure(Widget w)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+
+    PositionHeader(lv);
+    ComputeMetrics(lv);
+    PositionGrips(lv);
 }
 
 /* Report the full content height (header + all rows) so the enclosing Viewport

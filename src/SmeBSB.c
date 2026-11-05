@@ -119,6 +119,14 @@ static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeo
 static void GetDefaultSize(Widget, Dimension *, Dimension *);
 static void DrawBitmaps(Widget, Boolean);
 static void GetImageInfo(Widget, Boolean);
+static void Remeasure(Widget);
+
+/* record_type set in ClassInitialize */
+static IswFontMetricsExtensionRec smeBSBFontMetricsExt = {
+    NULL, ISW_NULLQUARK, IswFontMetricsExtensionVersion,
+    sizeof(IswFontMetricsExtensionRec), Remeasure
+};
+
 #define superclass (&smeClassRec)
 SmeBSBClassRec smeBSBClassRec = {
   {
@@ -153,7 +161,7 @@ SmeBSBClassRec smeBSBClassRec = {
     /* tm_table		  */    NULL,
     /* query_geometry	  */    QueryGeometry,
     /* display_accelerator*/    NULL,
-    /* extension	  */    NULL
+    /* extension	  */    (IswPointer) &smeBSBFontMetricsExt
   },{
     /* SimpleMenuClass Fields */
     /* highlight          */	Highlight,
@@ -184,8 +192,29 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
+    smeBSBFontMetricsExt.record_type =
+	IswPermStringToQuark(IswNfontMetricsExtension);
     IswSetTypeConverter( IswRString, IswRJustify, ISWCvtStringToJustify,
 		    (IswConvertArgList)NULL, 0, IswCacheNone, (IswDestructor)NULL );
+}
+
+/*	Function Name: Remeasure
+ *	Description: IswFontMetricsExtension — the font rendering settings
+ *		     changed; request the entry's new default size from the
+ *		     menu, as SetValues does when the label changes.
+ *	Arguments: w - the menu entry object.
+ *	Returns: none.
+ */
+
+static void
+Remeasure(Widget w)
+{
+    SmeBSBObject entry = (SmeBSBObject) w;
+    Dimension width, height;
+
+    GetDefaultSize(w, &width, &height);
+    if (width != entry->rectangle.width || height != entry->rectangle.height)
+	IswMakeResizeRequest(w, width, height, NULL, NULL);
 }
 
 /*      Function Name: Initialize
