@@ -267,6 +267,7 @@ set(LIBXT_SOURCES
     src/Varargs.c
     src/ISWRender.c
     src/platform/X11/ISWRenderCairoXCB.c
+    src/platform/X11/ISWFontSettingsX11.c
 )
 
 if(ISW_RENDER_EGL)

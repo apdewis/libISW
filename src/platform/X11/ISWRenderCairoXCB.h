@@ -25,6 +25,10 @@ int cairo_xcb_scaled_font_height(Widget widget, IswFontStruct *font);
 int cairo_xcb_scaled_font_ascent(Widget widget, IswFontStruct *font);
 int cairo_xcb_scaled_font_cap_height(Widget widget, IswFontStruct *font);
 
+/* Re-read the font rendering settings (Xft.*) from dpy and drop font state
+   resolved under the old ones.  Published on the platform render ops. */
+void cairo_xcb_reload_font_options(IswDisplay dpy);
+
 /*
  * Present source accessor — the inputs a platform present_root needs to blit a
  * finished composite surface to its window, without reaching into the private

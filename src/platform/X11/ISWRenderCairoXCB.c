@@ -26,9 +26,8 @@
 #include <math.h>
 #include <cairo/cairo-ft.h>
 #include <fontconfig/fontconfig.h>
-#include <ft2build.h>
-#include FT_FREETYPE_H
 #include <xcb/present.h>
+#include "ISWFontSettingsX11.h"
 
 /* Defined in Initialize.c */
 extern double _IswGetScaleFactor(IswDisplay dpy);
@@ -94,6 +93,14 @@ struct _IswSurface {
     double            border_half;
     double            border_fw, border_fh;
     double            border_radius;
+
+    /* Font last installed by set_font, and the font-settings serial it was
+       resolved under.  When the settings change (ISWRenderReloadFontOptions)
+       begin() re-resolves the face, so no context keeps rendering with a face
+       or options built from stale settings. */
+    char             *font_family;
+    int               font_weight, font_slant;
+    unsigned int      font_serial;
 };
 
 /* The backend's data IS its IswSurface; keep the historical name as an alias so
@@ -234,6 +241,8 @@ cairo_xcb_surface_init(Widget widget)
     data->screen = screen;
     data->window = window;
 
+    _IswFontSettingsEnsure(IswDisplayOf(widget));
+
     /* Use widget depth if set, otherwise use screen's root depth */
     depth = (widget->core.depth != 0) ? widget->core.depth : screen->root_depth;
 
@@ -301,6 +310,7 @@ cairo_xcb_surface_destroy(IswSurface data)
         cairo_surface_destroy(data->surface);
     }
 
+    free(data->font_family);
     free(data);
 }
 
@@ -390,6 +400,42 @@ _cairo_xcb_ensure_back(IswSurface data, Widget widget,
 static void
 cairo_xcb_rounded_path(cairo_t *cr, int x, int y, int w, int h, double radius);
 
+typedef struct _ISWFontCacheEntry _ISWFontCacheEntry;
+static _ISWFontCacheEntry *_ISWResolveFontFace(const char *family,
+                                               int weight, int slant);
+static void _ISWInstallFontFace(cairo_t *cr, _ISWFontCacheEntry *entry);
+static cairo_font_options_t *_ISWScratchFontOptions(void);
+
+/* Re-resolve the window ctx's face if the font settings changed since it was
+   installed, then copy the font state (face, matrix, options) to the back ctx.
+   cairo_get_font_face / cairo_get_font_matrix do not carry the options. */
+static void
+_cairo_xcb_sync_font(IswSurface data)
+{
+    cairo_font_options_t *opts;
+    cairo_matrix_t font_matrix;
+
+    if (!data->window_ctx)
+        return;
+    if (data->font_family && data->font_serial != _IswFontSettingsSerial()) {
+        _ISWFontCacheEntry *entry = _ISWResolveFontFace(data->font_family,
+                                                        data->font_weight,
+                                                        data->font_slant);
+        if (entry)
+            _ISWInstallFontFace(data->window_ctx, entry);
+        data->font_serial = _IswFontSettingsSerial();
+    }
+
+    if (!data->back_ctx)
+        return;
+    opts = _ISWScratchFontOptions();
+    cairo_get_font_matrix(data->window_ctx, &font_matrix);
+    cairo_set_font_face(data->back_ctx, cairo_get_font_face(data->window_ctx));
+    cairo_set_font_matrix(data->back_ctx, &font_matrix);
+    cairo_get_font_options(data->window_ctx, opts);
+    cairo_set_font_options(data->back_ctx, opts);
+}
+
 static void *
 cairo_xcb_surface_begin(IswSurface data, Widget widget)
 {
@@ -445,19 +491,14 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
 
         if (!_cairo_xcb_ensure_back(data, widget, pw, ph, sf)) {
             data->cairo_ctx = data->window_ctx;  /* degraded: no buffer */
+            _cairo_xcb_sync_font(data);
             cairo_save(data->cairo_ctx);
             data->frame_depth = 1;
             return data->cairo_ctx;
         }
 
         /* Font state from the always-present window ctx. */
-        {
-            cairo_font_face_t *face = cairo_get_font_face(data->window_ctx);
-            cairo_matrix_t font_matrix;
-            cairo_get_font_matrix(data->window_ctx, &font_matrix);
-            cairo_set_font_face(data->back_ctx, face);
-            cairo_set_font_matrix(data->back_ctx, &font_matrix);
-        }
+        _cairo_xcb_sync_font(data);
 
         data->cairo_ctx = data->back_ctx;
         cairo_save(data->cairo_ctx);
@@ -658,11 +699,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
     /* Swap cairo_ctx to target the back buffer for this frame */
     if (data->back_ctx) {
         /* Copy font state from window context to back buffer context */
-        cairo_font_face_t *face = cairo_get_font_face(data->window_ctx);
-        cairo_matrix_t font_matrix;
-        cairo_get_font_matrix(data->window_ctx, &font_matrix);
-        cairo_set_font_face(data->back_ctx, face);
-        cairo_set_font_matrix(data->back_ctx, &font_matrix);
+        _cairo_xcb_sync_font(data);
 
         /* Seed the back buffer so partial repaints preserve context. */
         if (!data->present_ok) {
@@ -678,6 +715,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
 
     } else {
         /* No back buffer — draw directly to window surface */
+        _cairo_xcb_sync_font(data);
         cairo_save(data->cairo_ctx);
     }
 
@@ -1307,6 +1345,121 @@ cairo_xcb_draw_image_masked(ISWRenderContext *ctx, Pixel foreground,
  * =================================================================
  */
 
+/* True if subpixel text about to be drawn at cr's current point must fall
+   back to grayscale because its destination is not opaque.  Subpixel coverage
+   is per colour channel and only composites correctly onto opaque pixels; on
+   transparent or partially transparent pixels (a windowless widget's ARGB32
+   back buffer outside its background fill, or a group's intermediate surface)
+   it would leave colour fringes once the surface is folded onto its parent.
+
+   Opaque-content targets (shell pixmaps) always keep subpixel; groups always
+   fall back; an ARGB32 image target is probed — every pixel under the text's
+   ink box (padded 1px for the LCD filter's spread, limited to the clip) must
+   have alpha 0xff. */
+static Boolean
+_cairo_xcb_text_needs_gray(cairo_t *cr, const char *text)
+{
+    cairo_font_options_t *opts = _ISWScratchFontOptions();
+    cairo_surface_t *target;
+    cairo_text_extents_t te;
+    double px, py, x0, y0, x1, y1, clx0, cly0, clx1, cly1;
+    double sx, sy, ox, oy, dx0, dy0, dx1, dy1;
+    double xs[4], ys[4];
+    int ix0, iy0, ix1, iy1, i, x, y, stride;
+    unsigned char *pixels;
+
+    cairo_get_font_options(cr, opts);
+    if (cairo_font_options_get_antialias(opts) != CAIRO_ANTIALIAS_SUBPIXEL)
+        return False;
+
+    target = cairo_get_target(cr);
+    if (cairo_get_group_target(cr) != target)
+        return True;
+    if (cairo_surface_get_content(target) == CAIRO_CONTENT_COLOR)
+        return False;
+    if (cairo_surface_get_type(target) != CAIRO_SURFACE_TYPE_IMAGE ||
+        cairo_image_surface_get_format(target) != CAIRO_FORMAT_ARGB32)
+        return True;
+
+    cairo_get_current_point(cr, &px, &py);
+    cairo_text_extents(cr, text, &te);
+    if (te.width <= 0 || te.height <= 0)
+        return False;
+
+    x0 = px + te.x_bearing - 1.0;
+    y0 = py + te.y_bearing - 1.0;
+    x1 = x0 + te.width + 2.0;
+    y1 = y0 + te.height + 2.0;
+    cairo_clip_extents(cr, &clx0, &cly0, &clx1, &cly1);
+    x0 = fmax(x0, clx0);
+    y0 = fmax(y0, cly0);
+    x1 = fmin(x1, clx1);
+    y1 = fmin(y1, cly1);
+    if (x0 >= x1 || y0 >= y1)
+        return False;
+
+    /* User -> device (CTM) for the four corners, then the surface's device
+       transform (HiDPI scale + offset) to pixel coordinates. */
+    xs[0] = x0; ys[0] = y0;  xs[1] = x1; ys[1] = y0;
+    xs[2] = x0; ys[2] = y1;  xs[3] = x1; ys[3] = y1;
+    dx0 = dy0 = HUGE_VAL;
+    dx1 = dy1 = -HUGE_VAL;
+    for (i = 0; i < 4; i++) {
+        cairo_user_to_device(cr, &xs[i], &ys[i]);
+        dx0 = fmin(dx0, xs[i]);
+        dy0 = fmin(dy0, ys[i]);
+        dx1 = fmax(dx1, xs[i]);
+        dy1 = fmax(dy1, ys[i]);
+    }
+    cairo_surface_get_device_scale(target, &sx, &sy);
+    cairo_surface_get_device_offset(target, &ox, &oy);
+    ix0 = (int) floor(dx0 * sx + ox);
+    iy0 = (int) floor(dy0 * sy + oy);
+    ix1 = (int) ceil(dx1 * sx + ox);
+    iy1 = (int) ceil(dy1 * sy + oy);
+    if (ix0 < 0) ix0 = 0;
+    if (iy0 < 0) iy0 = 0;
+    if (ix1 > cairo_image_surface_get_width(target))
+        ix1 = cairo_image_surface_get_width(target);
+    if (iy1 > cairo_image_surface_get_height(target))
+        iy1 = cairo_image_surface_get_height(target);
+    if (ix0 >= ix1 || iy0 >= iy1)
+        return False;
+
+    cairo_surface_flush(target);
+    pixels = cairo_image_surface_get_data(target);
+    stride = cairo_image_surface_get_stride(target);
+    if (!pixels)
+        return True;
+    for (y = iy0; y < iy1; y++) {
+        const uint32_t *row = (const uint32_t *) (pixels + (size_t) y * stride);
+        for (x = ix0; x < ix1; x++)
+            if ((row[x] >> 24) != 0xff)
+                return True;
+    }
+    return False;
+}
+
+/* cairo_show_text, rendering grayscale where subpixel would fringe. */
+static void
+_cairo_xcb_show_text(cairo_t *cr, const char *text)
+{
+    cairo_font_options_t *opts;
+
+    if (!_cairo_xcb_text_needs_gray(cr, text)) {
+        cairo_show_text(cr, text);
+        return;
+    }
+    opts = _ISWScratchFontOptions();
+    cairo_get_font_options(cr, opts);
+    cairo_font_options_set_antialias(opts, CAIRO_ANTIALIAS_GRAY);
+    cairo_save(cr);
+    cairo_set_font_options(cr, opts);
+    cairo_show_text(cr, text);      /* the advanced current point survives
+                                       the restore: the path is not gstate */
+    cairo_restore(cr);
+}
+
 static void
 cairo_xcb_draw_string(ISWRenderContext *ctx, const char *text, int len,
                      int x, int y)
@@ -1326,7 +1479,7 @@ cairo_xcb_draw_string(ISWRenderContext *ctx, const char *text, int len,
     
     /* Draw text */
     cairo_move_to(data->cairo_ctx, x, y);
-    cairo_show_text(data->cairo_ctx, null_term);
+    _cairo_xcb_show_text(data->cairo_ctx, null_term);
 
     free(null_term);
 }
@@ -1375,8 +1528,20 @@ static void
 cairo_xcb_set_font(ISWRenderContext *ctx, IswFontStruct *font)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    const char *family = (font && font->font_family) ? font->font_family
+                                                     : "Sans";
 
     if (!data->cairo_ctx) return;
+
+    /* Remember the description so begin() can re-resolve the face after a
+       font-settings change. */
+    if (!data->font_family || strcmp(data->font_family, family) != 0) {
+        free(data->font_family);
+        data->font_family = strdup(family);
+    }
+    data->font_weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+    data->font_slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
+    data->font_serial = _IswFontSettingsSerial();
 
     /* HiDPI: set font at logical size — the Cairo scale transform on
      * the render surface handles physical magnification. */
@@ -1756,7 +1921,7 @@ cairo_xcb_show_text(ISWRenderContext *ctx, const char *text)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     if (!data->cairo_ctx || !text) return;
-    cairo_show_text(data->cairo_ctx, text);
+    _cairo_xcb_show_text(data->cairo_ctx, text);
 }
 
 /*
@@ -1892,34 +2057,124 @@ cairo_xcb_pixel_to_rgb(ISWRenderContext *ctx, Pixel pixel,
  * =================================================================
  */
 
-static FT_Library _ft_library = NULL;
+/*
+ * Font rendering settings (antialias, hinting, subpixel order, LCD filter)
+ * come from ISWFontSettingsX11: Xft.* resources override the fonts.conf
+ * result per font.  Faces are built with cairo_ft_font_face_create_for_pattern
+ * from the final pattern, so cairo-ft applies its rendering properties
+ * (including the LCD filter, which cairo_font_options_t cannot carry).
+ *
+ * Each cached face also carries the cairo_font_options_t equivalent to its
+ * final pattern.  The options are installed explicitly wherever the face is
+ * installed, so every context (window, back buffer, measure) renders and
+ * measures a face identically, independent of the target surface's default
+ * options (image surfaces default to grayscale; cairo-xcb surfaces carry
+ * cairo's own once-per-connection read of Xft.*).
+ *
+ * Subpixel glyphs need an opaque destination: drawn over transparent pixels of
+ * a windowless widget's ARGB32 back buffer they would composite as colour
+ * fringes.  The text draw path therefore probes the destination and renders
+ * grayscale whenever any pixel under the text is not fully opaque, or the text
+ * is drawn into a group (see _cairo_xcb_text_needs_gray).
+ */
 
-typedef struct _ISWFontCacheEntry {
+/* Scratch options for copying / temporarily overriding a context's options. */
+static cairo_font_options_t *_scratch_font_options = NULL;
+
+static cairo_font_options_t *
+_ISWScratchFontOptions(void)
+{
+    if (!_scratch_font_options)
+        _scratch_font_options = cairo_font_options_create();
+    return _scratch_font_options;
+}
+
+/* Cairo font options equivalent to a final pattern's rendering parameters,
+   mirroring how cairo-ft reads the pattern itself.  Hint metrics are always
+   on, so advances measured on the A8 measure surface and drawn on any back
+   buffer agree. */
+static cairo_font_options_t *
+_ISWFontOptionsFromParams(const IswFontRenderParams *p)
+{
+    cairo_font_options_t *opts = cairo_font_options_create();
+
+    if (!p->antialias) {
+        cairo_font_options_set_antialias(opts, CAIRO_ANTIALIAS_NONE);
+    } else {
+        cairo_subpixel_order_t order = CAIRO_SUBPIXEL_ORDER_DEFAULT;
+        switch (p->rgba) {
+        case FC_RGBA_RGB:  order = CAIRO_SUBPIXEL_ORDER_RGB;  break;
+        case FC_RGBA_BGR:  order = CAIRO_SUBPIXEL_ORDER_BGR;  break;
+        case FC_RGBA_VRGB: order = CAIRO_SUBPIXEL_ORDER_VRGB; break;
+        case FC_RGBA_VBGR: order = CAIRO_SUBPIXEL_ORDER_VBGR; break;
+        default: break;
+        }
+        if (order != CAIRO_SUBPIXEL_ORDER_DEFAULT) {
+            cairo_font_options_set_antialias(opts, CAIRO_ANTIALIAS_SUBPIXEL);
+            cairo_font_options_set_subpixel_order(opts, order);
+        } else {
+            cairo_font_options_set_antialias(opts, CAIRO_ANTIALIAS_GRAY);
+        }
+    }
+
+    if (!p->hinting) {
+        cairo_font_options_set_hint_style(opts, CAIRO_HINT_STYLE_NONE);
+    } else {
+        switch (p->hintstyle) {
+        case FC_HINT_NONE:
+            cairo_font_options_set_hint_style(opts, CAIRO_HINT_STYLE_NONE);
+            break;
+        case FC_HINT_SLIGHT:
+            cairo_font_options_set_hint_style(opts, CAIRO_HINT_STYLE_SLIGHT);
+            break;
+        case FC_HINT_MEDIUM:
+            cairo_font_options_set_hint_style(opts, CAIRO_HINT_STYLE_MEDIUM);
+            break;
+        default:
+            cairo_font_options_set_hint_style(opts, CAIRO_HINT_STYLE_FULL);
+            break;
+        }
+    }
+
+    cairo_font_options_set_hint_metrics(opts, CAIRO_HINT_METRICS_ON);
+    return opts;
+}
+
+struct _ISWFontCacheEntry {
     struct _ISWFontCacheEntry *next;
     char *pattern_key;          /* "family:weight:slant" */
     cairo_font_face_t *cr_face;
-    FT_Face ft_face;
-} _ISWFontCacheEntry;
+    cairo_font_options_t *options; /* rendering options of the final pattern */
+};
 
+/* Faces are resolved under the current settings; the cache is dropped whenever
+   the settings change, so the key need not carry them. */
 static _ISWFontCacheEntry *_font_cache = NULL;
 
 static void
-_ISWInitFreeType(void)
+_ISWFlushFontCache(void)
 {
-    if (!_ft_library)
-        FT_Init_FreeType(&_ft_library);
+    _ISWFontCacheEntry *entry, *next;
+
+    for (entry = _font_cache; entry; entry = next) {
+        next = entry->next;
+        /* Contexts still holding the face keep their own reference. */
+        cairo_font_face_destroy(entry->cr_face);
+        cairo_font_options_destroy(entry->options);
+        free(entry->pattern_key);
+        free(entry);
+    }
+    _font_cache = NULL;
 }
 
-/* Resolve a font description to a (cached) Cairo font face. */
-static cairo_font_face_t *
+/* Resolve a font description to a (cached) Cairo font face + its options. */
+static _ISWFontCacheEntry *
 _ISWResolveFontFace(const char *family, int weight, int slant)
 {
     char key[256];
     _ISWFontCacheEntry *entry;
-    FcPattern *pattern = NULL, *match = NULL;
-    FcResult result;
-    FcChar8 *font_file = NULL;
-    FT_Face ft_face = NULL;
+    FcPattern *match, *final;
+    IswFontRenderParams params;
     cairo_font_face_t *cr_face;
 
     snprintf(key, sizeof(key), "%s:%d:%d", family ? family : "Sans",
@@ -1927,47 +2182,39 @@ _ISWResolveFontFace(const char *family, int weight, int slant)
 
     for (entry = _font_cache; entry; entry = entry->next)
         if (strcmp(entry->pattern_key, key) == 0)
-            return entry->cr_face;
+            return entry;
 
-    _ISWInitFreeType();
+    match = _IswFontMatch(family, weight, slant);
+    if (!match)
+        return NULL;
+    final = _IswFontFinalPattern(match, &params);
+    FcPatternDestroy(match);
+    if (!final)
+        return NULL;
 
-    pattern = FcPatternCreate();
-    FcPatternAddString(pattern, FC_FAMILY,
-                       (const FcChar8 *)(family ? family : "Sans"));
-    FcPatternAddInteger(pattern, FC_WEIGHT, weight);
-    FcPatternAddInteger(pattern, FC_SLANT, slant);
-    FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
-    FcConfigSubstitute(NULL, pattern, FcMatchPattern);
-    FcDefaultSubstitute(pattern);
-
-    match = FcFontMatch(NULL, pattern, &result);
-    if (!match) {
-        FcPatternDestroy(pattern);
+    /* create_for_pattern keeps the pattern's rendering properties (antialias,
+       hinting, hint style, rgba, LCD filter); cairo copies what it needs. */
+    cr_face = cairo_ft_font_face_create_for_pattern(final);
+    FcPatternDestroy(final);
+    if (cairo_font_face_status(cr_face) != CAIRO_STATUS_SUCCESS) {
+        cairo_font_face_destroy(cr_face);
         return NULL;
     }
-    if (FcPatternGetString(match, FC_FILE, 0, &font_file) != FcResultMatch) {
-        FcPatternDestroy(match);
-        FcPatternDestroy(pattern);
-        return NULL;
-    }
-    if (FT_New_Face(_ft_library, (const char *)font_file, 0, &ft_face) != 0) {
-        FcPatternDestroy(match);
-        FcPatternDestroy(pattern);
-        return NULL;
-    }
-
-    cr_face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
 
     entry = (_ISWFontCacheEntry *)malloc(sizeof(_ISWFontCacheEntry));
     entry->pattern_key = strdup(key);
     entry->cr_face = cr_face;
-    entry->ft_face = ft_face;  /* kept alive — Cairo references it */
+    entry->options = _ISWFontOptionsFromParams(&params);
     entry->next = _font_cache;
     _font_cache = entry;
+    return entry;
+}
 
-    FcPatternDestroy(match);
-    FcPatternDestroy(pattern);
-    return cr_face;
+static void
+_ISWInstallFontFace(cairo_t *cr, _ISWFontCacheEntry *entry)
+{
+    cairo_set_font_face(cr, entry->cr_face);
+    cairo_set_font_options(cr, entry->options);
 }
 
 /* Configure a Cairo context with the TTF face + size from an IswFontStruct.
@@ -1975,16 +2222,16 @@ _ISWResolveFontFace(const char *family, int weight, int slant)
 void
 _ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale)
 {
-    cairo_font_face_t *face;
+    _ISWFontCacheEntry *entry;
     double size;
 
     const char *family = (font && font->font_family) ? font->font_family : "Sans";
     int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
     int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
 
-    face = _ISWResolveFontFace(family, weight, slant);
-    if (face)
-        cairo_set_font_face(cr, face);
+    entry = _ISWResolveFontFace(family, weight, slant);
+    if (entry)
+        _ISWInstallFontFace(cr, entry);
 
     if (font && font->pt_size > 0)
         size = font->pt_size * (96.0 / 72.0) * scale;
@@ -2008,22 +2255,29 @@ static int _cached_font_weight = -1;
 static int _cached_font_slant = -1;
 static cairo_font_extents_t _cached_font_extents;
 static double _measure_device_scale = 0.0;
+static unsigned int _measure_font_serial = 0;
 
 static cairo_t *
-_ISWGetMeasureCR(double device_scale)
+_ISWGetMeasureCR(Widget widget)
 {
+    double device_scale = ISWScaleFactor(widget);
+
+    if (widget)
+        _IswFontSettingsEnsure(IswDisplayOf(widget));
+
     if (!_measure_cr) {
-        cairo_font_face_t *face;
+        _ISWFontCacheEntry *entry;
 
         _measure_surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
         if (device_scale > 1.0)
             cairo_surface_set_device_scale(_measure_surf, device_scale, device_scale);
         _measure_device_scale = device_scale;
         _measure_cr = cairo_create(_measure_surf);
+        _measure_font_serial = _IswFontSettingsSerial();
 
-        face = _ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
-        if (face)
-            cairo_set_font_face(_measure_cr, face);
+        entry =_ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
+        if (entry)
+            _ISWInstallFontFace(_measure_cr, entry);
         else
             cairo_select_font_face(_measure_cr, "Sans",
                                    CAIRO_FONT_SLANT_NORMAL,
@@ -2033,6 +2287,13 @@ _ISWGetMeasureCR(double device_scale)
             device_scale > 1.0 ? device_scale : 1.0,
             device_scale > 1.0 ? device_scale : 1.0);
         _measure_device_scale = device_scale;
+        _cached_font_size = -1.0;
+        _cached_font_family = NULL;
+    }
+    if (_measure_font_serial != _IswFontSettingsSerial()) {
+        /* Settings changed: drop the cached face/extents so the next sync
+           re-resolves the face (and its options) under the new settings. */
+        _measure_font_serial = _IswFontSettingsSerial();
         _cached_font_size = -1.0;
         _cached_font_family = NULL;
     }
@@ -2089,7 +2350,7 @@ static void
 _ISWGetCairoFontExtents(Widget widget, IswFontStruct *font,
                         cairo_font_extents_t *extents)
 {
-    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
+    cairo_t *cr = _ISWGetMeasureCR(widget);
     _ISWSyncMeasureFont(cr, widget, font);
     *extents = _cached_font_extents;
 }
@@ -2107,7 +2368,7 @@ cairo_xcb_scaled_text_width(Widget widget, IswFontStruct *font,
     if (!text || len <= 0)
         return 0;
 
-    cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
+    cr = _ISWGetMeasureCR(widget);
     _ISWSyncMeasureFont(cr, widget, font);
 
     null_term = (char *)malloc(len + 1);
@@ -2145,12 +2406,23 @@ cairo_xcb_scaled_font_ascent(Widget widget, IswFontStruct *font)
 int
 cairo_xcb_scaled_font_cap_height(Widget widget, IswFontStruct *font)
 {
-    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
+    cairo_t *cr = _ISWGetMeasureCR(widget);
     cairo_text_extents_t text_ext;
 
     _ISWSyncMeasureFont(cr, widget, font);
     cairo_text_extents(cr, "X", &text_ext);
     return (int)ceil(-text_ext.y_bearing);
+}
+
+/* .reload_font_options op: re-read the Xft.* settings from dpy and, if they
+   changed, drop every face resolved under the old ones.  Contexts holding an
+   old face re-resolve it at their next begin (surface font serial), the
+   measure context at its next use (measure font serial). */
+void
+cairo_xcb_reload_font_options(IswDisplay dpy)
+{
+    if (_IswFontSettingsReload(dpy))
+        _ISWFlushFontCache();
 }
 
 /* Drawing primitives — operate on the active draw target of ctx->surface. */
