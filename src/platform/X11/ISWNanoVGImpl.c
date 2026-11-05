@@ -65,6 +65,47 @@ float isw_nvgTextGlyphBounds(NVGcontext* ctx, float x, float y,
     return width * invscale;
 }
 
+/* Per-font glyph rendering (FreeType load flags incl. hinting target, render
+   mode, LCD filter, BGR subpixel order, hinted advances).  See
+   fonsSetFontRender. */
+void isw_nvgSetFontRender(NVGcontext* ctx, int font, int loadFlags,
+                          int renderMode, int lcdFilter, int bgr,
+                          int hintedAdvance)
+{
+    fonsSetFontRender(ctx->fs, font, loadFlags, renderMode, lcdFilter, bgr,
+                      hintedAdvance);
+}
+
+/* Axis-aligned bounds (frame coordinates: x0, y0, x1, y1) of the current
+   scissor.  Returns 0 when no scissor is set. */
+int isw_nvgScissorBounds(NVGcontext* ctx, float* bounds)
+{
+    NVGstate* state = nvg__getState(ctx);
+    NVGscissor* sc = &state->scissor;
+    float ex, ey;
+
+    if (sc->extent[0] < -0.5f || sc->extent[1] < -0.5f)
+        return 0;
+    ex = fabsf(sc->xform[0]) * sc->extent[0] + fabsf(sc->xform[2]) * sc->extent[1];
+    ey = fabsf(sc->xform[1]) * sc->extent[0] + fabsf(sc->xform[3]) * sc->extent[1];
+    bounds[0] = sc->xform[4] - ex;
+    bounds[1] = sc->xform[5] - ey;
+    bounds[2] = sc->xform[4] + ex;
+    bounds[3] = sc->xform[5] + ey;
+    return 1;
+}
+
+/* Drop every cached glyph so fonts re-rasterize under changed rendering
+   parameters.  Must be called outside a frame (no batched text pending). */
+void isw_nvgResetFontAtlas(NVGcontext* ctx)
+{
+    int iw = 0, ih = 0;
+
+    nvgImageSize(ctx, ctx->fontImages[ctx->fontImageIdx], &iw, &ih);
+    if (iw > 0 && ih > 0)
+        fonsResetAtlas(ctx->fs, iw, ih);
+}
+
 /* nvgTextMetrics with FontStash's span normalization corrected to em units.
    FontStash divides ascender/descender/lineh by (ascender - descender) font
    units, but the FreeType pixel scale is em-based (size / units_per_EM), so

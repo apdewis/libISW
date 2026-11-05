@@ -15,6 +15,9 @@
 //    misrepresented as being the original software.
 // 3. This notice may not be removed or altered from any source distribution.
 //
+// ISW-modified from upstream (see README.ISW.md): adds NVG_IMAGE_COVERAGE for
+// the RGBA per-channel-coverage font atlas.
+//
 
 #ifndef NANOVG_H
 #define NANOVG_H
@@ -142,6 +145,8 @@ enum NVGimageFlags {
 	NVG_IMAGE_FLIPY				= 1<<3,		// Flips (inverses) image in Y direction when rendered.
 	NVG_IMAGE_PREMULTIPLIED		= 1<<4,		// Image data has premultiplied alpha.
 	NVG_IMAGE_NEAREST			= 1<<5,		// Image interpolation is Nearest instead Linear
+	NVG_IMAGE_COVERAGE			= 1<<6,		// ISW: RGBA texels are per-channel coverage
+											// (font atlas: subpixel/LCD glyphs), not colour.
 };
 
 // Begin drawing a new frame

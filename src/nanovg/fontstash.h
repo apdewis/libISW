@@ -15,6 +15,12 @@
 //    misrepresented as being the original software.
 // 3. This notice may not be removed or altered from any source distribution.
 //
+// ISW-modified from upstream (see README.ISW.md): the glyph atlas holds RGBA
+// per-channel coverage (4 bytes per texel) so it can carry subpixel (LCD)
+// glyphs, and FreeType fonts take per-font load flags / LCD filter / subpixel
+// order / hinted advances (fonsSetFontRender) instead of the fixed
+// FORCE_AUTOHINT | TARGET_LIGHT rendering and unhinted advances.
+//
 
 #ifndef FONS_H
 #define FONS_H
@@ -106,6 +112,17 @@ int fonsAddFont(FONScontext* s, const char* name, const char* path, int fontInde
 int fonsAddFontMem(FONScontext* s, const char* name, unsigned char* data, int ndata, int freeData, int fontIndex);
 int fonsGetFontByName(FONScontext* s, const char* name);
 
+// ISW: per-font rendering.  With FreeType, loadFlags are the FT_LOAD_* flags
+// (including the FT_LOAD_TARGET_* hinting mode) for FT_Load_Glyph and
+// renderMode the FT_Render_Mode the outline is rasterized with (MONO, NORMAL,
+// LCD, LCD_V); lcdFilter is the FT_LcdFilter for LCD render modes; bgr selects
+// BGR / VBGR subpixel order; hintedAdvance takes the glyph advance from the
+// loaded (hinted) glyph instead of the unscaled font units.  Glyphs already
+// cached for the font are not re-rendered: reset the atlas after changing a
+// font in use.  No-op without FreeType.
+void fonsSetFontRender(FONScontext* s, int font, int loadFlags, int renderMode,
+					   int lcdFilter, int bgr, int hintedAdvance);
+
 // State handling
 void fonsPushState(FONScontext* s);
 void fonsPopState(FONScontext* s);
@@ -145,15 +162,25 @@ void fonsDrawDebug(FONScontext* s, float x, float y);
 
 #define FONS_NOTUSED(v)  (void)sizeof(v)
 
+// ISW: bytes per atlas texel (RGBA per-channel coverage).
+#define FONS__BPP 4
+
 #ifdef FONS_USE_FREETYPE
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_ADVANCES_H
+#include FT_LCD_FILTER_H
 #include <math.h>
 
 struct FONSttFontImpl {
 	FT_Face font;
+	FT_Library library;		// ISW: for the per-font LCD filter
+	int loadFlags;			// ISW: FT_LOAD_* incl. hinting target
+	int renderMode;			// ISW: FT_Render_Mode for the outline
+	int lcdFilter;			// ISW: FT_LcdFilter for LCD render modes
+	int bgr;				// ISW: BGR / VBGR subpixel order
+	int hintedAdvance;		// ISW: advance from the hinted glyph
 };
 typedef struct FONSttFontImpl FONSttFontImpl;
 
@@ -324,6 +351,13 @@ int fons__tt_loadFont(FONScontext *context, FONSttFontImpl *font, unsigned char 
 	FONS_NOTUSED(context);
 
 	ftError = FT_New_Memory_Face(context->ftLibrary, (const FT_Byte*)data, dataSize, fontIndex, &font->font);
+	// ISW: upstream rendering until fonsSetFontRender says otherwise.
+	font->library = context->ftLibrary;
+	font->loadFlags = FT_LOAD_FORCE_AUTOHINT | FT_LOAD_TARGET_LIGHT;
+	font->renderMode = FT_RENDER_MODE_LIGHT;
+	font->lcdFilter = FT_LCD_FILTER_DEFAULT;
+	font->bgr = 0;
+	font->hintedAdvance = 0;
 	return ftError == 0;
 }
 
@@ -350,39 +384,92 @@ int fons__tt_buildGlyphBitmap(FONSttFontImpl *font, int glyph, float size, float
 	FT_Error ftError;
 	FT_GlyphSlot ftGlyph;
 	FT_Fixed advFixed;
+	unsigned int w, h;
 	FONS_NOTUSED(scale);
 
 	ftError = FT_Set_Pixel_Sizes(font->font, 0, size);
 	if (ftError) return 0;
-	ftError = FT_Load_Glyph(font->font, glyph, FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT | FT_LOAD_TARGET_LIGHT);
-	if (ftError) return 0;
-	ftError = FT_Get_Advance(font->font, glyph, FT_LOAD_NO_SCALE, &advFixed);
+	// ISW: per-font load flags and render mode (load, then rasterize, so a
+	// light-hinted outline can still render as LCD); the LCD filter is
+	// library-global in FreeType, so set it for each LCD render.
+	ftError = FT_Load_Glyph(font->font, glyph, font->loadFlags);
 	if (ftError) return 0;
 	ftGlyph = font->font->glyph;
-	*advance = (int)advFixed;
+	if (ftGlyph->format != FT_GLYPH_FORMAT_BITMAP) {
+		if (font->renderMode == FT_RENDER_MODE_LCD || font->renderMode == FT_RENDER_MODE_LCD_V)
+			FT_Library_SetLcdFilter(font->library, (FT_LcdFilter)font->lcdFilter);
+		ftError = FT_Render_Glyph(ftGlyph, (FT_Render_Mode)font->renderMode);
+		if (ftError) return 0;
+	}
+	if (font->hintedAdvance) {
+		// ISW: hinted advance (26.6 px) back in font units, as fontstash scales it.
+		float units = (float)ftGlyph->advance.x / 64.0f
+					  * (float)font->font->units_per_EM / size;
+		*advance = (int)(units + 0.5f);
+	} else {
+		ftError = FT_Get_Advance(font->font, glyph, FT_LOAD_NO_SCALE, &advFixed);
+		if (ftError) return 0;
+		*advance = (int)advFixed;
+	}
+	// ISW: LCD bitmaps carry three samples per pixel along the subpixel axis.
+	w = ftGlyph->bitmap.width;
+	h = ftGlyph->bitmap.rows;
+	if (ftGlyph->bitmap.pixel_mode == FT_PIXEL_MODE_LCD)
+		w /= 3;
+	else if (ftGlyph->bitmap.pixel_mode == FT_PIXEL_MODE_LCD_V)
+		h /= 3;
 	*lsb = (int)ftGlyph->metrics.horiBearingX;
 	*x0 = ftGlyph->bitmap_left;
-	*x1 = *x0 + ftGlyph->bitmap.width;
+	*x1 = *x0 + (int)w;
 	*y0 = -ftGlyph->bitmap_top;
-	*y1 = *y0 + ftGlyph->bitmap.rows;
+	*y1 = *y0 + (int)h;
 	return 1;
 }
 
+// ISW: output is the RGBA coverage atlas, outStride in bytes.  Grayscale and
+// mono coverage is replicated to all four channels; LCD coverage goes to R, G, B
+// in display order with A = G (as cairo stores component-alpha glyphs).
 void fons__tt_renderGlyphBitmap(FONSttFontImpl *font, unsigned char *output, int outWidth, int outHeight, int outStride,
 								float scaleX, float scaleY, int glyph)
 {
 	FT_GlyphSlot ftGlyph = font->font->glyph;
-	int ftGlyphOffset = 0;
-	unsigned int x, y;
-	FONS_NOTUSED(outWidth);
-	FONS_NOTUSED(outHeight);
+	FT_Bitmap* bm = &ftGlyph->bitmap;
+	int x, y;
 	FONS_NOTUSED(scaleX);
 	FONS_NOTUSED(scaleY);
 	FONS_NOTUSED(glyph);	// glyph has already been loaded by fons__tt_buildGlyphBitmap
 
-	for ( y = 0; y < ftGlyph->bitmap.rows; y++ ) {
-		for ( x = 0; x < ftGlyph->bitmap.width; x++ ) {
-			output[(y * outStride) + x] = ftGlyph->bitmap.buffer[ftGlyphOffset++];
+	for (y = 0; y < outHeight; y++) {
+		unsigned char* dst = output + y * outStride;
+		for (x = 0; x < outWidth; x++, dst += 4) {
+			unsigned char r, g, b;
+			switch (bm->pixel_mode) {
+			case FT_PIXEL_MODE_MONO: {
+				const unsigned char* row = bm->buffer + y * bm->pitch;
+				r = g = b = (row[x >> 3] & (0x80 >> (x & 7))) ? 0xff : 0;
+				break;
+			}
+			case FT_PIXEL_MODE_LCD: {
+				const unsigned char* s = bm->buffer + y * bm->pitch + x * 3;
+				r = s[0]; g = s[1]; b = s[2];
+				break;
+			}
+			case FT_PIXEL_MODE_LCD_V: {
+				const unsigned char* s = bm->buffer + (y * 3) * bm->pitch + x;
+				r = s[0]; g = s[bm->pitch]; b = s[2 * bm->pitch];
+				break;
+			}
+			default:
+				r = g = b = bm->buffer[y * bm->pitch + x];
+				break;
+			}
+			if (font->bgr) {
+				unsigned char t = r; r = b; b = t;
+			}
+			dst[0] = r;
+			dst[1] = g;
+			dst[2] = b;
+			dst[3] = g;
 		}
 	}
 }
@@ -450,7 +537,20 @@ int fons__tt_buildGlyphBitmap(FONSttFontImpl *font, int glyph, float size, float
 void fons__tt_renderGlyphBitmap(FONSttFontImpl *font, unsigned char *output, int outWidth, int outHeight, int outStride,
 								float scaleX, float scaleY, int glyph)
 {
+	int x, y;
 	stbtt_MakeGlyphBitmap(&font->font, output, outWidth, outHeight, outStride, scaleX, scaleY, glyph);
+	// ISW: expand each row's single-channel coverage to RGBA texels in place,
+	// right to left so no sample is overwritten before it is read.
+	for (y = 0; y < outHeight; y++) {
+		unsigned char* row = output + y * outStride;
+		for (x = outWidth - 1; x >= 0; x--) {
+			unsigned char v = row[x];
+			row[x*4+0] = v;
+			row[x*4+1] = v;
+			row[x*4+2] = v;
+			row[x*4+3] = v;
+		}
+	}
 }
 
 int fons__tt_getGlyphKernAdvance(FONSttFontImpl *font, int glyph1, int glyph2)
@@ -718,11 +818,11 @@ static void fons__addWhiteRect(FONScontext* stash, int w, int h)
 		return;
 
 	// Rasterize
-	dst = &stash->texData[gx + gy * stash->params.width];
+	dst = &stash->texData[(gx + gy * stash->params.width) * FONS__BPP];
 	for (y = 0; y < h; y++) {
-		for (x = 0; x < w; x++)
+		for (x = 0; x < w * FONS__BPP; x++)
 			dst[x] = 0xff;
-		dst += stash->params.width;
+		dst += stash->params.width * FONS__BPP;
 	}
 
 	stash->dirtyRect[0] = fons__mini(stash->dirtyRect[0], gx);
@@ -767,9 +867,9 @@ FONScontext* fonsCreateInternal(FONSparams* params)
 	// Create texture for the cache.
 	stash->itw = 1.0f/stash->params.width;
 	stash->ith = 1.0f/stash->params.height;
-	stash->texData = (unsigned char*)malloc(stash->params.width * stash->params.height);
+	stash->texData = (unsigned char*)malloc(stash->params.width * stash->params.height * FONS__BPP);
 	if (stash->texData == NULL) goto error;
-	memset(stash->texData, 0, stash->params.width * stash->params.height);
+	memset(stash->texData, 0, stash->params.width * stash->params.height * FONS__BPP);
 
 	stash->dirtyRect[0] = stash->params.width;
 	stash->dirtyRect[1] = stash->params.height;
@@ -939,6 +1039,25 @@ error:
 	if (data) free(data);
 	if (fp) fclose(fp);
 	return FONS_INVALID;
+}
+
+void fonsSetFontRender(FONScontext* stash, int font, int loadFlags, int renderMode,
+					   int lcdFilter, int bgr, int hintedAdvance)
+{
+	if (stash == NULL || font < 0 || font >= stash->nfonts) return;
+#ifdef FONS_USE_FREETYPE
+	stash->fonts[font]->font.loadFlags = loadFlags;
+	stash->fonts[font]->font.renderMode = renderMode;
+	stash->fonts[font]->font.lcdFilter = lcdFilter;
+	stash->fonts[font]->font.bgr = bgr;
+	stash->fonts[font]->font.hintedAdvance = hintedAdvance;
+#else
+	FONS_NOTUSED(loadFlags);
+	FONS_NOTUSED(renderMode);
+	FONS_NOTUSED(lcdFilter);
+	FONS_NOTUSED(bgr);
+	FONS_NOTUSED(hintedAdvance);
+#endif
 }
 
 int fonsAddFontMem(FONScontext* stash, const char* name, unsigned char* data, int dataSize, int freeData, int fontIndex)
@@ -1171,18 +1290,18 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 	}
 
 	// Rasterize
-	dst = &stash->texData[(glyph->x0+pad) + (glyph->y0+pad) * stash->params.width];
-	fons__tt_renderGlyphBitmap(&renderFont->font, dst, gw-pad*2,gh-pad*2, stash->params.width, scale, scale, g);
+	dst = &stash->texData[((glyph->x0+pad) + (glyph->y0+pad) * stash->params.width) * FONS__BPP];
+	fons__tt_renderGlyphBitmap(&renderFont->font, dst, gw-pad*2,gh-pad*2, stash->params.width * FONS__BPP, scale, scale, g);
 
 	// Make sure there is one pixel empty border.
-	dst = &stash->texData[glyph->x0 + glyph->y0 * stash->params.width];
+	dst = &stash->texData[(glyph->x0 + glyph->y0 * stash->params.width) * FONS__BPP];
 	for (y = 0; y < gh; y++) {
-		dst[y*stash->params.width] = 0;
-		dst[gw-1 + y*stash->params.width] = 0;
+		memset(&dst[(y*stash->params.width) * FONS__BPP], 0, FONS__BPP);
+		memset(&dst[(gw-1 + y*stash->params.width) * FONS__BPP], 0, FONS__BPP);
 	}
 	for (x = 0; x < gw; x++) {
-		dst[x] = 0;
-		dst[x + (gh-1)*stash->params.width] = 0;
+		memset(&dst[x * FONS__BPP], 0, FONS__BPP);
+		memset(&dst[(x + (gh-1)*stash->params.width) * FONS__BPP], 0, FONS__BPP);
 	}
 
 	// Debug code to color the glyph background
@@ -1197,9 +1316,23 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 
 	// Blur
 	if (iblur > 0) {
+		// ISW: blur each channel of the RGBA texels through a planar copy.
+		unsigned char* plane = (unsigned char*)malloc(gw * gh);
+		int c;
 		stash->nscratch = 0;
-		bdst = &stash->texData[glyph->x0 + glyph->y0 * stash->params.width];
-		fons__blur(stash, bdst, gw, gh, stash->params.width, iblur);
+		bdst = &stash->texData[(glyph->x0 + glyph->y0 * stash->params.width) * FONS__BPP];
+		if (plane != NULL) {
+			for (c = 0; c < FONS__BPP; c++) {
+				for (y = 0; y < gh; y++)
+					for (x = 0; x < gw; x++)
+						plane[x + y*gw] = bdst[(x + y*stash->params.width) * FONS__BPP + c];
+				fons__blur(stash, plane, gw, gh, gw, iblur);
+				for (y = 0; y < gh; y++)
+					for (x = 0; x < gw; x++)
+						bdst[(x + y*stash->params.width) * FONS__BPP + c] = plane[x + y*gw];
+			}
+			free(plane);
+		}
 	}
 
 	stash->dirtyRect[0] = fons__mini(stash->dirtyRect[0], glyph->x0);
@@ -1706,18 +1839,18 @@ int fonsExpandAtlas(FONScontext* stash, int width, int height)
 			return 0;
 	}
 	// Copy old texture data over.
-	data = (unsigned char*)malloc(width * height);
+	data = (unsigned char*)malloc(width * height * FONS__BPP);
 	if (data == NULL)
 		return 0;
 	for (i = 0; i < stash->params.height; i++) {
-		unsigned char* dst = &data[i*width];
-		unsigned char* src = &stash->texData[i*stash->params.width];
-		memcpy(dst, src, stash->params.width);
+		unsigned char* dst = &data[i*width * FONS__BPP];
+		unsigned char* src = &stash->texData[i*stash->params.width * FONS__BPP];
+		memcpy(dst, src, stash->params.width * FONS__BPP);
 		if (width > stash->params.width)
-			memset(dst+stash->params.width, 0, width - stash->params.width);
+			memset(dst+stash->params.width * FONS__BPP, 0, (width - stash->params.width) * FONS__BPP);
 	}
 	if (height > stash->params.height)
-		memset(&data[stash->params.height * width], 0, (height - stash->params.height) * width);
+		memset(&data[stash->params.height * width * FONS__BPP], 0, (height - stash->params.height) * width * FONS__BPP);
 
 	free(stash->texData);
 	stash->texData = data;
@@ -1759,9 +1892,9 @@ int fonsResetAtlas(FONScontext* stash, int width, int height)
 	fons__atlasReset(stash->atlas, width, height);
 
 	// Clear texture data.
-	stash->texData = (unsigned char*)realloc(stash->texData, width * height);
+	stash->texData = (unsigned char*)realloc(stash->texData, width * height * FONS__BPP);
 	if (stash->texData == NULL) return 0;
-	memset(stash->texData, 0, width * height);
+	memset(stash->texData, 0, width * height * FONS__BPP);
 
 	// Reset dirty rect
 	stash->dirtyRect[0] = width;

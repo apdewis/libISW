@@ -34,6 +34,10 @@ int egl_scaled_font_height(Widget widget, IswFontStruct *font);
 int egl_scaled_font_ascent(Widget widget, IswFontStruct *font);
 int egl_scaled_font_cap_height(Widget widget, IswFontStruct *font);
 
+/* Re-read the font rendering settings (Xft.*) from dpy and re-rasterize text
+   under them.  Published on the platform render ops. */
+void egl_reload_font_options(IswDisplay dpy);
+
 #endif /* HAVE_EGL */
 
 #endif /* _ISWRenderEGL_h */

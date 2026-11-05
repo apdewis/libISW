@@ -15,6 +15,13 @@
 //    misrepresented as being the original software.
 // 3. This notice may not be removed or altered from any source distribution.
 //
+// ISW-modified from upstream (see README.ISW.md): NVG_IMAGE_COVERAGE textures
+// (the RGBA per-channel-coverage font atlas) render through two new texTypes —
+// 3: subpixel text, per-channel coverage blended against the text colour with
+// glBlendColor + GL_CONSTANT_COLOR / GL_ONE_MINUS_SRC_COLOR (GLES2 has no
+// dual-source blending; text is a solid colour), 4: coverage as plain alpha for
+// non-source-over composite operations.
+//
 #ifndef NANOVG_GL_H
 #define NANOVG_GL_H
 
@@ -176,6 +183,8 @@ struct GLNVGcall {
 	int triangleCount;
 	int uniformOffset;
 	GLNVGblend blendFunc;
+	int coverage;			// ISW: subpixel text call (texType 3)
+	float blendColor[4];	// ISW: text colour for GL_CONSTANT_COLOR
 };
 typedef struct GLNVGcall GLNVGcall;
 
@@ -652,6 +661,7 @@ static int glnvg__renderCreate(void* uptr)
 		"#endif\n"
 		"		if (texType == 1) color = vec4(color.xyz*color.w,color.w);"
 		"		if (texType == 2) color = vec4(color.x);"
+		"		if (texType == 4) color = vec4(color.w);"
 		"		// Apply color tint and alpha.\n"
 		"		color *= innerCol;\n"
 		"		// Combine alpha\n"
@@ -667,8 +677,12 @@ static int glnvg__renderCreate(void* uptr)
 		"#endif\n"
 		"		if (texType == 1) color = vec4(color.xyz*color.w,color.w);"
 		"		if (texType == 2) color = vec4(color.x);"
+		"		if (texType == 4) color = vec4(color.w);"
 		"		color *= scissor;\n"
-		"		result = color * innerCol;\n"
+		"		// texType 3: per-channel coverage x alpha; the blend stage\n"
+		"		// multiplies in the text colour (GL_CONSTANT_COLOR).\n"
+		"		if (texType == 3) result = color * innerCol.w;\n"
+		"		else result = color * innerCol;\n"
 		"	}\n"
 		"#ifdef NANOVG_GL3\n"
 		"	outColor = result;\n"
@@ -954,12 +968,16 @@ static int glnvg__convertPaint(GLNVGcontext* gl, GLNVGfragUniforms* frag, NVGpai
 		frag->type = NSVG_SHADER_FILLIMG;
 
 		#if NANOVG_GL_USE_UNIFORMBUFFER
-		if (tex->type == NVG_TEXTURE_RGBA)
+		if (tex->flags & NVG_IMAGE_COVERAGE)
+			frag->texType = 4;
+		else if (tex->type == NVG_TEXTURE_RGBA)
 			frag->texType = (tex->flags & NVG_IMAGE_PREMULTIPLIED) ? 0 : 1;
 		else
 			frag->texType = 2;
 		#else
-		if (tex->type == NVG_TEXTURE_RGBA)
+		if (tex->flags & NVG_IMAGE_COVERAGE)
+			frag->texType = 4.0f;
+		else if (tex->type == NVG_TEXTURE_RGBA)
 			frag->texType = (tex->flags & NVG_IMAGE_PREMULTIPLIED) ? 0.0f : 1.0f;
 		else
 			frag->texType = 2.0f;
@@ -1238,6 +1256,9 @@ static void glnvg__renderFlush(void* uptr)
 		for (i = 0; i < gl->ncalls; i++) {
 			GLNVGcall* call = &gl->calls[i];
 			glnvg__blendFuncSeparate(gl,&call->blendFunc);
+			if (call->type == GLNVG_TRIANGLES && call->coverage)
+				glBlendColor(call->blendColor[0], call->blendColor[1],
+							 call->blendColor[2], call->blendColor[3]);
 			if (call->type == GLNVG_FILL)
 				glnvg__fill(gl, call);
 			else if (call->type == GLNVG_CONVEXFILL)
@@ -1517,6 +1538,31 @@ static void glnvg__renderTriangles(void* uptr, NVGpaint* paint, NVGcompositeOper
 	frag = nvg__fragUniformPtr(gl, call->uniformOffset);
 	glnvg__convertPaint(gl, frag, paint, scissor, 1.0f, fringe, -1.0f);
 	frag->type = NSVG_SHADER_IMG;
+
+	// ISW: coverage atlas under source-over blends per channel against the
+	// (solid) text colour; other composite operations keep coverage-as-alpha.
+	call->coverage = 0;
+	if (paint->image != 0) {
+		GLNVGtexture* tex = glnvg__findTexture(gl, paint->image);
+		if (tex != NULL && (tex->flags & NVG_IMAGE_COVERAGE) &&
+			call->blendFunc.srcRGB == GL_ONE &&
+			call->blendFunc.dstRGB == GL_ONE_MINUS_SRC_ALPHA &&
+			call->blendFunc.srcAlpha == GL_ONE &&
+			call->blendFunc.dstAlpha == GL_ONE_MINUS_SRC_ALPHA) {
+			call->coverage = 1;
+			call->blendFunc.srcRGB = GL_CONSTANT_COLOR;
+			call->blendFunc.dstRGB = GL_ONE_MINUS_SRC_COLOR;
+			call->blendColor[0] = paint->innerColor.r;
+			call->blendColor[1] = paint->innerColor.g;
+			call->blendColor[2] = paint->innerColor.b;
+			call->blendColor[3] = 1.0f;
+			#if NANOVG_GL_USE_UNIFORMBUFFER
+			frag->texType = 3;
+			#else
+			frag->texType = 3.0f;
+			#endif
+		}
+	}
 
 	return;
 

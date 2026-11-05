@@ -38,8 +38,12 @@ embedded notice is retained.
 
 ## Local modifications
 
-**None.** All files are currently unmodified verbatim copies of the pinned
-upstream commit.
+`fontstash.h`, `nanovg.h`, `nanovg.c` and `nanovg_gl.h` are modified so the
+EGL backend can honour the system font rendering settings (antialias, hinting,
+hint style, subpixel order, LCD filter) and render subpixel (LCD) text. Each
+modified file carries an "ISW-modified from upstream" note in its header and
+`ISW:` comments at the changed lines. The remaining files are unmodified
+verbatim copies of the pinned upstream commit.
 
 ### Modification policy (zlib clause 2)
 
@@ -53,4 +57,7 @@ If any file in this directory is ever altered from its upstream form, the change
 
 | Date | File | Change |
 |------|------|--------|
-| —    | —    | (no local modifications yet) |
+| 2026-11-05 | `fontstash.h` | Glyph atlas holds RGBA per-channel coverage (4 bytes/texel); FreeType fonts take per-font load flags, render mode, LCD filter, BGR order and hinted advances (`fonsSetFontRender`) instead of the fixed FORCE_AUTOHINT/TARGET_LIGHT rendering and unscaled advances; mono and LCD/LCD_V bitmaps expanded into the atlas; blur applied per channel. |
+| 2026-11-05 | `nanovg.h`   | `NVG_IMAGE_COVERAGE` image flag for the coverage atlas. |
+| 2026-11-05 | `nanovg.c`   | Font atlas textures created `NVG_TEXTURE_RGBA` with `NVG_IMAGE_COVERAGE`. |
+| 2026-11-05 | `nanovg_gl.h` | Coverage textures: texType 3 (subpixel text, per-channel coverage blended against the text colour via `glBlendColor` + `GL_CONSTANT_COLOR`/`GL_ONE_MINUS_SRC_COLOR`) under source-over, texType 4 (coverage as alpha) otherwise. |

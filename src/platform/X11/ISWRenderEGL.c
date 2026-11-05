@@ -39,6 +39,12 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>   /* GL_DEPTH24_STENCIL8_OES */
 #include <fontconfig/fontconfig.h>
+#ifdef HAVE_FREETYPE
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_LCD_FILTER_H
+#endif
+#include "ISWFontSettingsX11.h"
 
 #include "../../nanovg/nanovg.h"
 #define NANOVG_GLES2 1
@@ -58,6 +64,14 @@ extern float isw_nvgTextGlyphBounds(NVGcontext *ctx, float x, float y,
    (ISWNanoVGImpl.c) — reported metrics match the rasterized glyph size. */
 extern void isw_nvgTextMetricsEm(NVGcontext *ctx, float *ascender,
                                  float *descender, float *lineh);
+
+/* Per-font glyph rendering, glyph-cache reset and scissor bounds
+   (ISWNanoVGImpl.c). */
+extern void isw_nvgSetFontRender(NVGcontext *ctx, int font, int loadFlags,
+                                 int renderMode, int lcdFilter, int bgr,
+                                 int hintedAdvance);
+extern void isw_nvgResetFontAtlas(NVGcontext *ctx);
+extern int  isw_nvgScissorBounds(NVGcontext *ctx, float *bounds);
 
 /*
  * =================================================================
@@ -121,73 +135,183 @@ egl_flush_pending_images(void)
    Save / SetColor(bg) / FillRect / Restore / DrawString (e.g. the Text sink
    painting a line background then the glyphs) would otherwise draw the string in
    the un-restored colour (the background) and the text would be invisible. */
-typedef struct { Pixel color; NVGcolor nvg_color; double line_width; IswFontStruct *font; } EglSaved;
+typedef struct { Pixel color; NVGcolor nvg_color; double line_width; IswFontStruct *font;
+                 Boolean fill_solid; Boolean op_over; } EglSaved;
 static EglSaved g_save_stack[64];
 static int      g_save_top = 0;
 static NVGcolor g_nvg_color;
 
+/* Fill paint is the solid g_nvg_color (not a gradient), and the composite
+   operation is source-over.  Together with an opaque colour they make a fill
+   produce opaque pixels — tracked for the subpixel text decision. */
+static Boolean  g_fill_solid = True;
+static Boolean  g_op_over = True;
+
 /* ---- Font cache --------------------------------------------------------
-   Maps (family, weight, slant) → NanoVG font handle.  Entries are populated
-   lazily on first use via fontconfig + nvgCreateFont.  The cache is small and
-   lives for the process lifetime (same as the NanoVG context). */
-#define EGL_FONT_CACHE_MAX 32
+   Maps (family, weight, slant) → NanoVG font handles.  Entries are populated
+   lazily on first use via fontconfig + nvgCreateFont and live for the process
+   lifetime (same as the NanoVG context; NanoVG cannot delete fonts).
+
+   Each font renders with the system font settings (ISWFontSettingsX11: Xft.*
+   resources over fonts.conf).  A subpixel font also gets a grayscale twin —
+   the same file under a second NanoVG handle — used where the destination is
+   not opaque (see egl_text_needs_gray). */
 typedef struct {
-    char *family;
-    int   weight;
-    int   slant;
-    int   nvg_id;
+    char      *family;
+    int        weight;
+    int        slant;
+    FcPattern *match;        /* fontconfig match without Xft overrides; the
+                                overrides are re-applied on settings reload */
+    int        nvg_id;
+    int        nvg_id_gray;  /* grayscale twin, -1 until a subpixel need */
+    Boolean    subpixel;     /* nvg_id renders LCD glyphs */
 } EglFontEntry;
-static EglFontEntry g_font_cache[EGL_FONT_CACHE_MAX];
-static int          g_font_cache_n = 0;
+static EglFontEntry *g_font_cache = NULL;
+static int           g_font_cache_n = 0, g_font_cache_cap = 0;
+static int           g_font_serial = 0;   /* unique NanoVG font names */
+
+/* Font in effect for the current draw (set by egl_apply_font). */
+static EglFontEntry *g_cur_font = NULL;
+
+/* FreeType load flags / render mode for a font's rendering parameters,
+   mirroring cairo-ft's mapping.  force_gray renders a subpixel font's
+   grayscale twin. */
+static void
+egl_apply_render_params(int nvg_id, const IswFontRenderParams *p,
+                        Boolean force_gray)
+{
+#ifdef HAVE_FREETYPE
+    Boolean lcd = !force_gray && _IswFontParamsSubpixel(p);
+    Boolean vertical = (p->rgba == FC_RGBA_VRGB || p->rgba == FC_RGBA_VBGR);
+    int load = 0, render, filter;
+
+    if (!p->hinting || p->hintstyle == FC_HINT_NONE) {
+        load |= FT_LOAD_NO_HINTING;
+    } else if (!p->antialias) {
+        load |= FT_LOAD_TARGET_MONO;
+    } else if (p->hintstyle == FC_HINT_SLIGHT) {
+        load |= FT_LOAD_TARGET_LIGHT;
+    } else if (p->hintstyle == FC_HINT_FULL && lcd) {
+        load |= vertical ? FT_LOAD_TARGET_LCD_V : FT_LOAD_TARGET_LCD;
+    } else {
+        load |= FT_LOAD_TARGET_NORMAL;
+    }
+    if (p->autohint)
+        load |= FT_LOAD_FORCE_AUTOHINT;
+
+    if (!p->antialias)
+        render = FT_RENDER_MODE_MONO;
+    else if (lcd)
+        render = vertical ? FT_RENDER_MODE_LCD_V : FT_RENDER_MODE_LCD;
+    else
+        render = FT_RENDER_MODE_NORMAL;
+
+    switch (p->lcdfilter) {
+    case FC_LCD_NONE:   filter = FT_LCD_FILTER_NONE;    break;
+    case FC_LCD_LIGHT:  filter = FT_LCD_FILTER_LIGHT;   break;
+    case FC_LCD_LEGACY: filter = FT_LCD_FILTER_LEGACY;  break;
+    default:            filter = FT_LCD_FILTER_DEFAULT; break;
+    }
+
+    isw_nvgSetFontRender(g_egl.vg, nvg_id, load, render, filter,
+                         lcd && (p->rgba == FC_RGBA_BGR ||
+                                 p->rgba == FC_RGBA_VBGR),
+                         1);
+#else
+    (void) nvg_id; (void) p; (void) force_gray;
+#endif
+}
 
 static int
+egl_create_font(const FcPattern *match)
+{
+    FcChar8 *file = NULL;
+    char name[64];
+
+    if (FcPatternGetString(match, FC_FILE, 0, &file) != FcResultMatch || !file)
+        return -1;
+    snprintf(name, sizeof(name), "fc_%d", g_font_serial++);
+    return nvgCreateFont(g_egl.vg, name, (const char *) file);
+}
+
+/* (Re)apply the current font settings to a cache entry's NanoVG fonts. */
+static void
+egl_font_entry_configure(EglFontEntry *e)
+{
+    IswFontRenderParams params;
+    FcPattern *final = _IswFontFinalPattern(e->match, &params);
+
+    if (!final)
+        return;
+    FcPatternDestroy(final);
+
+    e->subpixel = _IswFontParamsSubpixel(&params);
+    egl_apply_render_params(e->nvg_id, &params, False);
+    if (e->subpixel && e->nvg_id_gray < 0)
+        e->nvg_id_gray = egl_create_font(e->match);
+    if (e->nvg_id_gray >= 0)
+        egl_apply_render_params(e->nvg_id_gray, &params, True);
+}
+
+static EglFontEntry *
 egl_resolve_font(const char *family, int weight, int slant)
 {
-    if (!g_egl.vg) return g_egl.font_default;
+    FcPattern *match;
+    EglFontEntry *e;
+    int nvg_id;
+
+    if (!g_egl.vg) return NULL;
 
     for (int i = 0; i < g_font_cache_n; i++) {
-        EglFontEntry *e = &g_font_cache[i];
+        e = &g_font_cache[i];
         if (e->weight == weight && e->slant == slant
             && strcmp(e->family, family) == 0)
-            return e->nvg_id;
+            return e;
     }
 
-    int nvg_id = -1;
-    FcPattern *pat = FcPatternCreate();
-    if (pat) {
-        FcPatternAddString(pat, FC_FAMILY, (const FcChar8 *) family);
-        FcPatternAddInteger(pat, FC_WEIGHT, weight);
-        FcPatternAddInteger(pat, FC_SLANT, slant);
-        FcPatternAddBool(pat, FC_SCALABLE, FcTrue);
-        FcConfigSubstitute(NULL, pat, FcMatchPattern);
-        FcDefaultSubstitute(pat);
-        FcResult res;
-        FcPattern *m = FcFontMatch(NULL, pat, &res);
-        if (m) {
-            FcChar8 *file = NULL;
-            if (FcPatternGetString(m, FC_FILE, 0, &file) == FcResultMatch
-                && file) {
-                char name[128];
-                snprintf(name, sizeof(name), "fc_%d", g_font_cache_n);
-                nvg_id = nvgCreateFont(g_egl.vg, name, (const char *) file);
-            }
-            FcPatternDestroy(m);
+    match = _IswFontMatch(family, weight, slant);
+    if (!match)
+        return NULL;
+    nvg_id = egl_create_font(match);
+    if (nvg_id < 0) {
+        FcPatternDestroy(match);
+        return NULL;
+    }
+
+    if (g_font_cache_n == g_font_cache_cap) {
+        int cap = g_font_cache_cap ? g_font_cache_cap * 2 : 16;
+        EglFontEntry *grown = (EglFontEntry *) realloc(g_font_cache,
+                                                       cap * sizeof(*grown));
+        if (!grown) {
+            FcPatternDestroy(match);
+            return NULL;
         }
-        FcPatternDestroy(pat);
+        g_font_cache = grown;
+        g_font_cache_cap = cap;
+        g_cur_font = NULL;   /* entries may have moved */
     }
+    e = &g_font_cache[g_font_cache_n++];
+    e->family      = strdup(family);
+    e->weight      = weight;
+    e->slant       = slant;
+    e->match       = match;
+    e->nvg_id      = nvg_id;
+    e->nvg_id_gray = -1;
+    e->subpixel    = False;
+    egl_font_entry_configure(e);
+    return e;
+}
 
-    if (nvg_id < 0)
-        nvg_id = g_egl.font_default;
+/* NanoVG handle to draw/measure with for a font description (the default font
+   when it cannot be resolved). */
+static int
+egl_font_id(const char *family, int weight, int slant, EglFontEntry **entry)
+{
+    EglFontEntry *e = egl_resolve_font(family, weight, slant);
 
-    if (g_font_cache_n < EGL_FONT_CACHE_MAX) {
-        EglFontEntry *e = &g_font_cache[g_font_cache_n++];
-        e->family = strdup(family);
-        e->weight = weight;
-        e->slant  = slant;
-        e->nvg_id = nvg_id;
-    }
-
-    return nvg_id;
+    if (entry)
+        *entry = e;
+    return e ? e->nvg_id : g_egl.font_default;
 }
 
 /* Bounding box of the rectangles added to the current path, so egl_clip_path can
@@ -247,6 +371,18 @@ struct _IswSurface {
     float             border_half;
     float             border_fw, border_fh;
     float             border_radius;
+
+    /* Subpixel text needs an opaque destination, and reading the FBO back
+       would stall the GPU.  Instead the surface records the opaque solid fills
+       painted into it since it was last cleared (frame coordinates, x0 y0 x1
+       y1, inset to fully covered pixels); text renders subpixel only inside
+       one of them.  A windowed root's FBO is presented to an opaque window, so
+       it is opaque throughout. */
+    Boolean           opaque_all;
+#define EGL_OPAQUE_MAX 32
+    float             opaque[EGL_OPAQUE_MAX][4];
+    int               n_opaque;      /* valid entries */
+    int               opaque_next;   /* ring write index once full */
 };
 
 typedef struct _IswSurface ISWRenderEGLData;
@@ -312,34 +448,18 @@ egl_shared_init(IswDisplay dpy)
     if (g_egl.vg == NULL)
         return False;
 
-    /* Load a default font so nvgText renders.  Resolve a concrete font file via
-       fontconfig (the same discovery the Cairo backend uses), then hand the path
-       to NanoVG/FontStash. */
-    {
-        FcPattern *pat = FcPatternCreate();
-        if (pat) {
-            FcPatternAddString(pat, FC_FAMILY, (const FcChar8 *) "Sans");
-            FcPatternAddBool(pat, FC_SCALABLE, FcTrue);
-            FcConfigSubstitute(NULL, pat, FcMatchPattern);
-            FcDefaultSubstitute(pat);
-            FcResult res;
-            FcPattern *m = FcFontMatch(NULL, pat, &res);
-            if (m) {
-                FcChar8 *file = NULL;
-                if (FcPatternGetString(m, FC_FILE, 0, &file) == FcResultMatch
-                    && file)
-                    g_egl.font_default =
-                        nvgCreateFont(g_egl.vg, "sans", (const char *) file);
-                FcPatternDestroy(m);
-            }
-            FcPatternDestroy(pat);
-        }
-        if (g_egl.font_default < 0)
-            fprintf(stderr, "ISWRenderEGL: no default font loaded; "
-                            "text will not render\n");
-    }
+    /* Load a default font so nvgText renders.  Resolved through the shared
+       font settings (fontconfig discovery + Xft.* rendering, as the Cairo
+       backend does). */
+    _IswFontSettingsEnsure(dpy);
+    EglFontEntry *def = egl_resolve_font("Sans", FC_WEIGHT_NORMAL,
+                                         FC_SLANT_ROMAN);
+    if (def)
+        g_egl.font_default = def->nvg_id;
+    else
+        fprintf(stderr, "ISWRenderEGL: no default font loaded; "
+                        "text will not render\n");
 
-    (void) dpy;
     g_egl.usable = True;
     return True;
 }
@@ -596,9 +716,12 @@ egl_surface_begin(IswSurface s, Widget widget)
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         s->back_needs_clear = False;
+        s->n_opaque = 0;        /* cleared to transparent */
+        s->opaque_next = 0;
     } else {
         glClear(GL_STENCIL_BUFFER_BIT);
     }
+    s->opaque_all = !windowless;
 
     /* NanoVG works in logical pixels; pass the device-pixel-ratio so its AA and
        line widths match the FBO's physical resolution. */
@@ -606,6 +729,8 @@ egl_surface_begin(IswSurface s, Widget widget)
                   (float) (s->back_w / s->scale),
                   (float) (s->back_h / s->scale),
                   (float) s->scale);
+    g_fill_solid = True;        /* nvgBeginFrame resets fill paint + op */
+    g_op_over = True;
 
     if (has_virt) {
         nvgTranslate(g_egl.vg,
@@ -959,6 +1084,135 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
 
 #define VG (g_egl.vg)
 
+/* Frame-coordinate bounds of a user-space rectangle under the current
+   transform.  Returns False for a rotated / skewed transform. */
+static Boolean
+egl_user_rect_to_frame(float x0, float y0, float x1, float y1, float *out)
+{
+    float xf[6];
+
+    nvgCurrentTransform(VG, xf);
+    if (xf[1] != 0.0f || xf[2] != 0.0f)
+        return False;
+    out[0] = fminf(xf[0] * x0, xf[0] * x1) + xf[4];
+    out[2] = fmaxf(xf[0] * x0, xf[0] * x1) + xf[4];
+    out[1] = fminf(xf[3] * y0, xf[3] * y1) + xf[5];
+    out[3] = fmaxf(xf[3] * y0, xf[3] * y1) + xf[5];
+    return True;
+}
+
+/* Record that the fill just issued over the user-space rectangle (x,y,w,h)
+   leaves its pixels opaque: an opaque solid colour under source-over, limited
+   to the current scissor, inset by one device pixel so antialiased edges are
+   excluded.  `solid` is False when the fill used the fill paint and that paint
+   may be a gradient. */
+static void
+egl_note_opaque(float x, float y, float w, float h, Boolean solid)
+{
+    IswSurface s = g_active_surface;
+    float r[4], sc[4], inset;
+
+    if (!s || s->opaque_all || !VG || w <= 0 || h <= 0)
+        return;
+    if (!solid || !g_op_over || g_nvg_color.a < 1.0f)
+        return;
+    if (!egl_user_rect_to_frame(x, y, x + w, y + h, r))
+        return;
+    if (isw_nvgScissorBounds(VG, sc)) {
+        r[0] = fmaxf(r[0], sc[0]);
+        r[1] = fmaxf(r[1], sc[1]);
+        r[2] = fminf(r[2], sc[2]);
+        r[3] = fminf(r[3], sc[3]);
+    }
+    inset = (float) (1.0 / (s->scale > 0 ? s->scale : 1.0));
+    r[0] += inset; r[1] += inset; r[2] -= inset; r[3] -= inset;
+    if (r[0] >= r[2] || r[1] >= r[3])
+        return;
+
+    memcpy(s->opaque[s->opaque_next], r, sizeof(r));
+    s->opaque_next = (s->opaque_next + 1) % EGL_OPAQUE_MAX;
+    if (s->n_opaque < EGL_OPAQUE_MAX)
+        s->n_opaque++;
+}
+
+/* Forget opaque regions overlapping a frame rectangle whose pixels were just
+   replaced by something of unknown opacity (copy_area). */
+static void
+egl_forget_opaque(IswSurface s, const float *r)
+{
+    int i, n = 0;
+
+    if (!s)
+        return;
+    for (i = 0; i < s->n_opaque; i++) {
+        float *o = s->opaque[i];
+        if (o[0] < r[2] && r[0] < o[2] && o[1] < r[3] && r[1] < o[3])
+            continue;
+        if (n != i)
+            memcpy(s->opaque[n], o, sizeof(s->opaque[n]));
+        n++;
+    }
+    s->n_opaque = n;
+    s->opaque_next = n % EGL_OPAQUE_MAX;
+}
+
+/* True if subpixel text about to be drawn at user-space (x, y) must use the
+   current font's grayscale twin: some pixel under its ink box (padded one
+   device pixel for the LCD filter's spread, limited to the scissor) is not
+   known to be opaque.  Under a non-source-over operation the renderer already
+   uses coverage as plain alpha, so no twin is needed. */
+static Boolean
+egl_text_needs_gray(float x, float y, const char *text, const char *end)
+{
+    IswSurface s = g_active_surface;
+    float b[4], r[4], sc[4], pad;
+    int i;
+
+    if (!g_cur_font || !g_cur_font->subpixel || g_cur_font->nvg_id_gray < 0)
+        return False;
+    if (!g_op_over)
+        return False;
+    if (!s)
+        return True;
+    if (s->opaque_all)
+        return False;
+
+    isw_nvgTextGlyphBounds(VG, x, y, text, end, b);
+    if (b[0] >= b[2] || b[1] >= b[3])
+        return False;
+    if (!egl_user_rect_to_frame(b[0], b[1], b[2], b[3], r))
+        return True;
+    pad = (float) (1.0 / (s->scale > 0 ? s->scale : 1.0));
+    r[0] -= pad; r[1] -= pad; r[2] += pad; r[3] += pad;
+    if (isw_nvgScissorBounds(VG, sc)) {
+        r[0] = fmaxf(r[0], sc[0]);
+        r[1] = fmaxf(r[1], sc[1]);
+        r[2] = fminf(r[2], sc[2]);
+        r[3] = fminf(r[3], sc[3]);
+        if (r[0] >= r[2] || r[1] >= r[3])
+            return False;
+    }
+    for (i = 0; i < s->n_opaque; i++) {
+        const float *o = s->opaque[i];
+        if (o[0] <= r[0] && o[1] <= r[1] && o[2] >= r[2] && o[3] >= r[3])
+            return False;
+    }
+    return True;
+}
+
+/* nvgText with the subpixel / grayscale choice for the destination. */
+static void
+egl_text(float x, float y, const char *text, const char *end)
+{
+    if (egl_text_needs_gray(x, y, text, end)) {
+        nvgFontFaceId(VG, g_cur_font->nvg_id_gray);
+        nvgText(VG, x, y, text, end);
+        nvgFontFaceId(VG, g_cur_font->nvg_id);
+        return;
+    }
+    nvgText(VG, x, y, text, end);
+}
+
 static void egl_save(ISWRenderContext *ctx)
 {
     if (VG) nvgSave(VG);
@@ -967,6 +1221,8 @@ static void egl_save(ISWRenderContext *ctx)
         g_save_stack[g_save_top].nvg_color  = g_nvg_color;
         g_save_stack[g_save_top].line_width = ctx->line_width;
         g_save_stack[g_save_top].font       = ctx->current_font;
+        g_save_stack[g_save_top].fill_solid = g_fill_solid;
+        g_save_stack[g_save_top].op_over    = g_op_over;
     }
     g_save_top++;
 }
@@ -980,6 +1236,8 @@ static void egl_restore(ISWRenderContext *ctx)
         g_nvg_color        = g_save_stack[g_save_top].nvg_color;
         ctx->line_width    = g_save_stack[g_save_top].line_width;
         ctx->current_font  = g_save_stack[g_save_top].font;
+        g_fill_solid       = g_save_stack[g_save_top].fill_solid;
+        g_op_over          = g_save_stack[g_save_top].op_over;
     }
 }
 
@@ -988,6 +1246,7 @@ static void egl_set_color(ISWRenderContext *ctx, Pixel pixel)
     ctx->current_color = pixel;
     NVGcolor c = egl_pixel_to_nvg(ctx->surface, pixel);
     g_nvg_color = c;
+    g_fill_solid = True;
     if (!VG) return;
     nvgFillColor(VG, c);
     nvgStrokeColor(VG, c);
@@ -1006,6 +1265,21 @@ static void egl_fill_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h
     nvgBeginPath(VG);
     nvgRect(VG, (float) x, (float) y, (float) w, (float) h);
     nvgFill(VG);
+    egl_note_opaque((float) x, (float) y, (float) w, (float) h, g_fill_solid);
+}
+
+/* Record a rounded rectangle's opaque interior: the two bands clear of the
+   corner arcs. */
+static void egl_note_opaque_rounded(int x, int y, int w, int h, double radius,
+                                    Boolean solid)
+{
+    float r = (float) radius;
+    if (r > w / 2.0f) r = w / 2.0f;
+    if (r > h / 2.0f) r = h / 2.0f;
+    egl_note_opaque((float) x + r, (float) y, (float) w - 2 * r, (float) h,
+                    solid);
+    egl_note_opaque((float) x, (float) y + r, (float) w, (float) h - 2 * r,
+                    solid);
 }
 
 static void egl_stroke_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
@@ -1084,6 +1358,7 @@ static void egl_fill_rounded_rect(ISWRenderContext *ctx,
     if (!VG) return;
     egl_rounded_path(x, y, w, h, radius);
     nvgFill(VG);
+    egl_note_opaque_rounded(x, y, w, h, radius, g_fill_solid);
 }
 
 static void egl_stroke_rounded_rect(ISWRenderContext *ctx,
@@ -1106,6 +1381,7 @@ static void egl_fill_stroke_rounded_rect(ISWRenderContext *ctx,
     egl_rounded_path(x, y, w, h, radius);
     nvgFillColor(VG, c);
     nvgFill(VG);
+    egl_note_opaque_rounded(x, y, w, h, radius, True);
     NVGcolor sc = c; sc.a = 1.0f;
     nvgStrokeColor(VG, sc);
     nvgStrokeWidth(VG, (float) stroke_width);
@@ -1125,7 +1401,7 @@ static void egl_apply_font(ISWRenderContext *ctx)
     const char *family = (font && font->font_family) ? font->font_family : "Sans";
     int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
     int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
-    int id = egl_resolve_font(family, weight, slant);
+    int id = egl_font_id(family, weight, slant, &g_cur_font);
     if (id >= 0)
         nvgFontFaceId(VG, id);
     double pt = (font && font->pt_size > 0) ? font->pt_size : 11.0;
@@ -1139,8 +1415,8 @@ static void egl_draw_string(ISWRenderContext *ctx, const char *text, int len,
     egl_apply_font(ctx);
     nvgTextAlign(VG, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
     nvgFillColor(VG, g_nvg_color);
-    nvgText(VG, (float) x, (float) y, text,
-            len >= 0 ? text + len : NULL);
+    g_fill_solid = True;
+    egl_text((float) x, (float) y, text, len >= 0 ? text + len : NULL);
 }
 
 static int egl_text_width(ISWRenderContext *ctx, const char *text, int len)
@@ -1212,6 +1488,15 @@ static void egl_copy_area(ISWRenderContext *ctx,
     nvgFillPaint(VG, p);
     nvgFill(VG);
     nvgRestore(VG);
+
+    /* The destination now holds copied pixels of unknown opacity. */
+    float r[4];
+    if (egl_user_rect_to_frame((float) dst_x, (float) dst_y,
+                               (float) (dst_x + (int) width),
+                               (float) (dst_y + (int) height), r))
+        egl_forget_opaque(s, r);
+    else
+        s->n_opaque = s->opaque_next = 0;
 }
 
 /* ---- Retained image ops ---- */
@@ -1313,6 +1598,7 @@ static Boolean egl_set_gradient(ISWRenderContext *ctx,
                                    egl_pixel_to_nvg(ctx->surface, c1),
                                    egl_pixel_to_nvg(ctx->surface, c2));
     nvgFillPaint(VG, p);
+    g_fill_solid = False;
     return True;
 }
 
@@ -1402,12 +1688,14 @@ static void egl_paint(ISWRenderContext *ctx)
     /* Paint the current colour over the current scissor/clip region. */
     if (!VG || !ctx->surface) return;
     IswSurface s = ctx->surface;
+    float fw = (float) (s->back_w / (s->scale > 0 ? s->scale : 1.0));
+    float fh = (float) (s->back_h / (s->scale > 0 ? s->scale : 1.0));
     nvgBeginPath(VG);
-    nvgRect(VG, 0, 0,
-            (float) (s->back_w / (s->scale > 0 ? s->scale : 1.0)),
-            (float) (s->back_h / (s->scale > 0 ? s->scale : 1.0)));
+    nvgRect(VG, 0, 0, fw, fh);
     nvgFillColor(VG, g_nvg_color);
     nvgFill(VG);
+    g_fill_solid = True;
+    egl_note_opaque(0, 0, fw, fh, True);
 }
 
 static void egl_set_fill_rule(ISWRenderContext *ctx, ISWFillRule rule)
@@ -1432,6 +1720,7 @@ static void egl_set_operator(ISWRenderContext *ctx, ISWOperator op)
         nvgGlobalCompositeBlendFunc(VG, NVG_ONE_MINUS_DST_COLOR, NVG_ZERO);
     else
         nvgGlobalCompositeOperation(VG, NVG_SOURCE_OVER);
+    g_op_over = (op != ISW_OPERATOR_DIFFERENCE);
 }
 
 static void egl_translate(ISWRenderContext *ctx, double tx, double ty)
@@ -1449,9 +1738,10 @@ static void egl_show_text(ISWRenderContext *ctx, const char *text)
     egl_apply_font(ctx);
     nvgTextAlign(VG, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
     nvgFillColor(VG, g_nvg_color);
+    g_fill_solid = True;
     /* Draw at the path's current point (set by ISWRenderPathMoveTo); honours the
        active transform.  ProgressBar positions its centred value text this way. */
-    nvgText(VG, (float) g_cur_x, (float) g_cur_y, text, NULL);
+    egl_text((float) g_cur_x, (float) g_cur_y, text, NULL);
 }
 
 static void egl_pixel_to_rgb(ISWRenderContext *ctx, Pixel pixel,
@@ -1475,7 +1765,7 @@ static void egl_measure_font(IswFontStruct *font)
     const char *family = (font && font->font_family) ? font->font_family : "Sans";
     int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
     int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
-    int id = egl_resolve_font(family, weight, slant);
+    int id = egl_font_id(family, weight, slant, NULL);
     if (id >= 0)
         nvgFontFaceId(g_egl.vg, id);
     double pt = (font && font->pt_size > 0) ? font->pt_size : 11.0;
@@ -1534,6 +1824,21 @@ int egl_scaled_font_cap_height(Widget widget, IswFontStruct *font)
     float bounds[4];
     isw_nvgTextGlyphBounds(g_egl.vg, 0, 0, "X", NULL, bounds);
     return (int) (-bounds[1] + 0.5f);
+}
+
+/* .reload_font_options op: re-read the Xft.* settings from dpy and, if they
+   changed, re-apply them to every cached font and drop the glyph cache so text
+   re-rasterizes (and re-measures) under the new settings. */
+void egl_reload_font_options(IswDisplay dpy)
+{
+    if (!_IswFontSettingsReload(dpy) || !g_egl.vg)
+        return;
+
+    /* No batched draw may still reference glyphs in the atlas being reset. */
+    egl_flush_composite_frame();
+    for (int i = 0; i < g_font_cache_n; i++)
+        egl_font_entry_configure(&g_font_cache[i]);
+    isw_nvgResetFontAtlas(g_egl.vg);
 }
 
 /* ===================================================================
