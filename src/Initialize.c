@@ -347,7 +347,6 @@ IswScreenDatabase(IswScreen screen)
     IswDatabaseHandle db;
     IswPerDisplay pd;
     IswDisplay dpy = NULL;
-    int nscreens;
 
     if (screen == NULL) {
         IswErrorMsg("nullDisplay",
@@ -388,8 +387,6 @@ IswScreenDatabase(IswScreen screen)
     LOCK_APP(app);
     LOCK_PROCESS;
 
-    nscreens = ops->display->screen_count(dpy);
-
     /* Return cached database if available */
     if (pd->per_screen_db && pd->per_screen_db[scrno]) {
         db = pd->per_screen_db[scrno];
@@ -398,14 +395,10 @@ IswScreenDatabase(IswScreen screen)
         return db;
     }
 
-    /* Start with command-line database */
-    if (nscreens == 1) {
-        db = pd->cmd_db;
-        pd->cmd_db = NULL;
-    }
-    else {
-        db = CopyDB(pd->cmd_db);
-    }
+    /* Start with a copy of the command-line database: the original stays on
+       the display so a database rebuilt after IswReloadScreenDatabase keeps
+       the -xrm / command-line resources. */
+    db = CopyDB(pd->cmd_db);
 
     /* Platform-specific user defaults (X11: RESOURCE_MANAGER, ~/.Xdefaults,
        XENVIRONMENT, ~/.Xdefaults-hostname, XUSERFILESEARCHPATH, app-defaults) */
