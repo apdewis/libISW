@@ -448,7 +448,7 @@ IswCreate(String name,
         }
     }
     IswStackFree((IswPointer) req_widget, widget_cache);
-    if (post_proc != (IswWidgetProc) NULL && (parent != NULL)) {
+    if (post_proc != (IswWidgetProc) NULL) {
         Widget hookobj;
 
         (*post_proc) (widget);
