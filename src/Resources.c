@@ -77,6 +77,7 @@ in this Software without prior written authorization from The Open Group.
 #include "Shell.h"
 #include "ShellP.h"
 #include "StringDefs.h"
+#include "uthash.h"
 #include <stdio.h>
 
 /* Static quarks used for resource lookup */
@@ -389,6 +390,105 @@ _IswDbGetResource(IswDatabaseHandle db,
     return False;
 }
 
+/*
+ * Resources the application set explicitly — through the arg list at create
+ * or through IswSetValues — one bit per entry of the widget class's resource
+ * list.  A resource reload never overwrites them.  Calls the reload makes
+ * itself run with marking suppressed.
+ */
+typedef struct {
+    Widget          id;         /* hash key: widget pointer */
+    Cardinal        nbits;
+    unsigned char  *bits;
+    UT_hash_handle  hh;
+} AppSetRec;
+
+static AppSetRec *appSetTable = NULL;
+static int appSetSuppress = 0;
+
+static void
+MarkAppSet(Widget w, Cardinal index, Cardinal num_resources)
+{
+    AppSetRec *rec;
+
+    if (appSetSuppress)
+        return;
+    LOCK_PROCESS;
+    HASH_FIND_PTR(appSetTable, &w, rec);
+    if (rec == NULL) {
+        rec = (AppSetRec *) __IswMalloc((Cardinal) sizeof(AppSetRec));
+        rec->id = w;
+        rec->nbits = num_resources;
+        rec->bits = (unsigned char *) __IswCalloc((num_resources + 7) / 8, 1);
+        HASH_ADD_PTR(appSetTable, id, rec);
+    }
+    if (index < rec->nbits)
+        rec->bits[index / 8] |= (unsigned char) (1 << (index % 8));
+    UNLOCK_PROCESS;
+}
+
+static Boolean
+IsAppSet(Widget w, Cardinal index)
+{
+    AppSetRec *rec;
+    Boolean set = False;
+
+    LOCK_PROCESS;
+    HASH_FIND_PTR(appSetTable, &w, rec);
+    if (rec != NULL && index < rec->nbits)
+        set = (rec->bits[index / 8] & (1 << (index % 8))) != 0;
+    UNLOCK_PROCESS;
+    return set;
+}
+
+/* Mark the widget's class resources named in `args` as set by the app
+   (IswSetValues). */
+void
+_IswMarkAppSetArgs(Widget w, ArgList args, Cardinal num_args)
+{
+    WidgetClass wc = IswClass(w);
+    IswQResourceList *res;
+    Cardinal i, j;
+
+    if (appSetSuppress || num_args == 0)
+        return;
+    LOCK_PROCESS;
+    res = (IswQResourceList *) wc->core_class.resources;
+    for (i = 0; i < num_args; i++) {
+        IswQuarkName q = StringToName(args[i].name);
+        for (j = 0; j < wc->core_class.num_resources; j++) {
+            if (res[j] != NULL && res[j]->xrm_name == q) {
+                MarkAppSet(w, j, wc->core_class.num_resources);
+                break;
+            }
+        }
+    }
+    UNLOCK_PROCESS;
+}
+
+void
+_IswForgetAppSetResources(Widget w)
+{
+    AppSetRec *rec;
+
+    LOCK_PROCESS;
+    HASH_FIND_PTR(appSetTable, &w, rec);
+    if (rec != NULL) {
+        HASH_DEL(appSetTable, rec);
+        IswFree((char *) rec->bits);
+        IswFree((char *) rec);
+    }
+    UNLOCK_PROCESS;
+}
+
+void
+_IswSuppressAppSetMarking(Boolean suppress)
+{
+    LOCK_PROCESS;
+    appSetSuppress += suppress ? 1 : -1;
+    UNLOCK_PROCESS;
+}
+
 /* Spiffy fast compiled form of resource list.                          */
 /* IswResourceLists are compiled in-place into XrmResourceLists          */
 /* All atoms are replaced by quarks, and offsets are -offset-1 to       */
@@ -685,6 +785,15 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                     break;
                 }
             }
+        }
+
+        /* The widget's own resources given in the create arg list are set
+           by the application; a resource reload leaves them alone. */
+        if (base == (char *) widget && table ==
+            (IswQResourceList *) IswClass(widget)->core_class.resources) {
+            for (j = 0; j < num_resources; j++)
+                if (found[j])
+                    MarkAppSet(widget, j, num_resources);
         }
     }
 
@@ -1122,8 +1231,67 @@ _IswGetResources(register Widget w,
     return cache_refs;
 }                               /* _IswGetResources */
 
+/* The database string for `rx` on the widget named by names/classes, or NULL
+   if `db` has none.  Caller frees. */
+static char *
+RefetchDbString(IswDatabaseHandle db, IswQuarkList names,
+                IswQuarkList classes, IswQResourceList rx)
+{
+    IswValueRec value;
+
+    if (!_IswDbGetResource(db, names, classes, (IswQuarkName) rx->xrm_name,
+                           (IswQuarkClass) rx->xrm_class, &value))
+        return NULL;
+    return (char *) value.addr;
+}
+
+/* The resource's default value, converted to its type, into *out (same
+   rules GetResources applies when the database has no entry). */
+static Boolean
+RefetchDefault(Widget w, IswQResourceList rx, IswArgVal *out)
+{
+    IswRepresentation type = (IswRepresentation) rx->xrm_type;
+    IswRepresentation dtype = (IswRepresentation) rx->xrm_default_type;
+    IswValueRec value, conv;
+
+    *out = 0;
+    if (dtype == QCallProc) {
+        value.addr = NULL;
+        (*(IswResourceDefaultProc) (rx->xrm_default_addr))
+            (w, -(rx->xrm_offset + 1), &value);
+        if (value.addr == NULL)
+            return False;
+        IswMemmove(out, value.addr, rx->xrm_size);
+        return True;
+    }
+    if (dtype == QImmediate) {
+        *out = (IswArgVal) rx->xrm_default_addr;
+        return True;
+    }
+    if (rx->xrm_default_addr == NULL)
+        return False;
+    if (dtype == type) {
+        IswMemmove(out, rx->xrm_default_addr, rx->xrm_size);
+        return True;
+    }
+    value.addr = rx->xrm_default_addr;
+    value.size = (dtype == QString) ?
+        (unsigned) strlen((char *) value.addr) + 1 : sizeof(IswPointer);
+    conv.addr = (IswPointer) out;
+    conv.size = rx->xrm_size;
+    return _IswConvert(w, dtype, &value, type, &conv, NULL);
+}
+
+/*
+ * _IswRefetchResources - re-apply the widget's Pixel and FontStruct resources
+ * whose database entry changed between `old_db` and `new_db`: the new value,
+ * or the default when the entry was removed.  Resources the application set
+ * explicitly, and resources whose entry did not change, are left alone, so a
+ * value a widget derived for itself survives the reload.
+ */
 void
-_IswRefetchResources(Widget w, IswDatabaseHandle db)
+_IswRefetchResources(Widget w, IswDatabaseHandle old_db,
+                     IswDatabaseHandle new_db)
 {
     IswQuarkName names_s[50], *names;
     IswQuarkClass classes_s[50], *classes;
@@ -1131,12 +1299,11 @@ _IswRefetchResources(Widget w, IswDatabaseHandle db)
     WidgetClass wc;
     IswQuark pixelQ = IswStringToQuark(IswRPixel);
     IswQuark fontQ = IswStringToQuark(IswRFontStruct);
-    Arg args[64];
-    IswArgVal saved[64];
-    Cardinal nargs = 0;
+    Arg changed[64];
+    Cardinal nchanged = 0;
 
     wc = IswClass(w);
-    if (db == NULL)
+    if (new_db == NULL)
         return;
 
     count = CountTreeDepth(w);
@@ -1152,73 +1319,53 @@ _IswRefetchResources(Widget w, IswDatabaseHandle db)
     {
         IswQResourceList *res = (IswQResourceList *) wc->core_class.resources;
         Cardinal i;
-        for (i = 0; i < wc->core_class.num_resources && nargs < 64; i++) {
+
+        for (i = 0; i < wc->core_class.num_resources && nchanged < 64; i++) {
             IswQResource *rx = res[i];
+            char *old_s, *new_s;
+            Boolean same, ok = False;
+            IswArgVal converted = 0;
 
             if (rx->xrm_type != pixelQ && rx->xrm_type != fontQ)
                 continue;
+            if (IsAppSet(w, i))
+                continue;
 
-            args[nargs].name = (char *) IswQuarkToString(rx->xrm_name);
-            args[nargs].value = (IswArgVal) &saved[nargs];
-            saved[nargs] = 0;
-            nargs++;
+            old_s = old_db ? RefetchDbString(old_db, names, classes, rx) : NULL;
+            new_s = RefetchDbString(new_db, names, classes, rx);
+            same = (old_s == NULL && new_s == NULL) ||
+                   (old_s != NULL && new_s != NULL && strcmp(old_s, new_s) == 0);
+
+            if (!same) {
+                if (new_s != NULL) {
+                    IswValueRec dbval, convResult;
+
+                    dbval.addr = (IswPointer) new_s;
+                    dbval.size = (unsigned) strlen(new_s) + 1;
+                    convResult.size = rx->xrm_size;
+                    convResult.addr = (IswPointer) &converted;
+                    ok = _IswConvert(w, QString, &dbval,
+                                     (IswRepresentation) rx->xrm_type,
+                                     &convResult, NULL);
+                }
+                else
+                    ok = RefetchDefault(w, rx, &converted);
+            }
+            if (ok) {
+                changed[nchanged].name = (char *) IswQuarkToString(rx->xrm_name);
+                changed[nchanged].value = converted;
+                nchanged++;
+            }
+            free(old_s);
+            free(new_s);
         }
     }
     UNLOCK_PROCESS;
 
-    if (nargs == 0) {
-        IswStackFree((IswPointer) names, names_s);
-        IswStackFree((IswPointer) classes, classes_s);
-        return;
-    }
-
-    IswGetValues(w, args, nargs);
-
-    {
-        Cardinal nchanged = 0;
-        Arg changed[64];
-
-        LOCK_PROCESS;
-        {
-            IswQResourceList *res = (IswQResourceList *) wc->core_class.resources;
-            Cardinal ri, ai = 0;
-            for (ri = 0; ri < wc->core_class.num_resources && ai < nargs; ri++) {
-                IswQResource *rx = res[ri];
-                IswValueRec dbval;
-
-                if (rx->xrm_type != pixelQ && rx->xrm_type != fontQ)
-                    continue;
-
-                if (_IswDbGetResource(db, names, classes,
-                                     (IswQuarkName) rx->xrm_name,
-                                     (IswQuarkClass) rx->xrm_class, &dbval)) {
-                    IswValueRec convResult;
-                    IswArgVal converted = 0;
-
-                    convResult.size = rx->xrm_size;
-                    convResult.addr = (IswPointer) &converted;
-                    if (_IswConvert(w, QString, &dbval,
-                                   (IswRepresentation) rx->xrm_type,
-                                   &convResult, NULL)) {
-                        if (converted != saved[ai]) {
-                            fprintf(stderr, "RefetchResources: %s.%s: 0x%lx -> 0x%lx\n",
-                                    IswName(w), args[ai].name,
-                                    (unsigned long) saved[ai],
-                                    (unsigned long) converted);
-                            changed[nchanged].name = args[ai].name;
-                            changed[nchanged].value = converted;
-                            nchanged++;
-                        }
-                    }
-                    free(dbval.addr);
-                }
-                ai++;
-            }
-        }
-        UNLOCK_PROCESS;
-
-        if (nchanged > 0)
-            IswSetValues(w, changed, nchanged);
+    if (nchanged > 0) {
+        _IswSuppressAppSetMarking(True);
+        IswSetValues(w, changed, nchanged);
+        _IswSuppressAppSetMarking(False);
     }
 
     IswStackFree((IswPointer) names, names_s);

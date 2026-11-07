@@ -78,7 +78,9 @@ typedef enum {
     IswDestroy,
     IswMappingChanged,  /* keyboard mapping changed (refresh maps)  */
     IswProtocol,        /* generic protocol message (client message)    */
-    IswWindowClose      /* window manager requested close               */
+    IswWindowClose,     /* window manager requested close               */
+    IswSettingsChanged  /* desktop settings (resource database) changed;
+                           no target, consumed by the dispatch core      */
 } IswEventKind;
 
 /*

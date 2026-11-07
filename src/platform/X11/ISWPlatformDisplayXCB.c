@@ -102,9 +102,26 @@ xcb_disp_open(const char *display_name, int *default_screen)
     xcbDisplay = (IswDisplayXCB *)IswMalloc(sizeof(IswDisplayXCB));
     if(xcbDisplay != NULL) {
         memset(xcbDisplay, 0, sizeof(*xcbDisplay));
+        xcb_screen_iterator_t it;
+        xcb_intern_atom_reply_t *ar;
+        uint32_t mask = XCB_EVENT_MASK_PROPERTY_CHANGE;
+
         xcbDisplay->conn = conn;
         _IswXcbAllocWWTable((IswDisplay) xcbDisplay);
         _IswXcbInputInit((IswDisplay) xcbDisplay);
+
+        /* Watch the root windows for desktop settings changes
+           (RESOURCE_MANAGER on screen 0, SCREEN_RESOURCES per screen). */
+        ar = xcb_intern_atom_reply(conn,
+            xcb_intern_atom(conn, 0, 16, "SCREEN_RESOURCES"), NULL);
+        if (ar) {
+            xcbDisplay->screen_resources_atom = ar->atom;
+            free(ar);
+        }
+        for (it = xcb_setup_roots_iterator(xcb_get_setup(conn)); it.rem;
+             xcb_screen_next(&it))
+            xcb_change_window_attributes(conn, it.data->root,
+                                         XCB_CW_EVENT_MASK, &mask);
         return (IswDisplay) xcbDisplay;
     } else {
         return (IswDisplay) NULL;
@@ -1459,6 +1476,14 @@ _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor)
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->cursor && ops->cursor->free_cursor)
         ops->cursor->free_cursor(dpy, cursor);
+}
+
+void
+_IswPlatformCursorSettingsChanged(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->cursor && ops->cursor->settings_changed)
+        ops->cursor->settings_changed(dpy);
 }
 
 /* Input capture (Phase 5) */

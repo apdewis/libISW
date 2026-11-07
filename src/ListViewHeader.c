@@ -160,6 +160,16 @@ UpdateResizeCursor(ListViewHeaderWidget hw, Boolean over_grip)
         return;
 
     if (over_grip && !hw->listViewHeader.resize_cursor_set) {
+        /* Load on first use, and again after ISWReloadCursors. */
+        unsigned long gen = _IswGetPerDisplay(IswDisplayOf(w))->cursor_generation;
+        if (hw->listViewHeader.resize_cursor == IswCursorNone ||
+            hw->listViewHeader.resize_cursor_gen != gen) {
+            _IswFreeCursor(w, hw->listViewHeader.resize_cursor);
+            hw->listViewHeader.resize_cursor = _IswLoadThemedCursor(
+                IswDisplayOf(w), w->core.screen, "sb_h_double_arrow");
+            hw->listViewHeader.resize_cursor_gen = gen;
+        }
+        hw->listViewHeader.default_cursor = ((SimpleWidget)w)->simple.cursor;
         ((SimpleWidget)w)->simple.cursor = hw->listViewHeader.resize_cursor;
         _IswSimpleApplyCursor(w);
         hw->listViewHeader.resize_cursor_set = True;
@@ -188,6 +198,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     hw->listViewHeader.col_resize_active = False;
     hw->listViewHeader.col_resize_index = -1;
     hw->listViewHeader.resize_cursor = IswCursorNone;
+    hw->listViewHeader.resize_cursor_gen = 0;
     hw->listViewHeader.default_cursor = IswCursorNone;
     hw->listViewHeader.resize_cursor_set = False;
 
@@ -206,10 +217,6 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
         (dpy, w, valueMask, attributes);
 
     hw->listViewHeader.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-
-    hw->listViewHeader.resize_cursor = _IswLoadThemedCursor(dpy, w->core.screen,
-        "sb_h_double_arrow");
-    hw->listViewHeader.default_cursor = ((SimpleWidget)w)->simple.cursor;
 }
 
 static void

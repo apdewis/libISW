@@ -1800,12 +1800,30 @@ extern void IswSetValues(
     Cardinal 		/* num_args */
 );
 
+/* Rebuild the subtree's screen database and re-apply the Pixel and Font
+   resources whose database entry changed (the default when an entry was
+   removed).  Resources the application set explicitly — create args or
+   IswSetValues — are never overwritten. */
 extern void IswReloadResources(
     Widget		/* subtree_root */
 );
 
 extern void IswReloadScreenDatabase(
     IswScreen 	/* screen */
+);
+
+/* Add a resource line ("*foreground: red") to the display's databases.  The
+   line is kept and layered on top whenever the database is rebuilt. */
+extern void IswPutLineResource(
+    IswDisplay		/* dpy */,
+    _Xconst char*	/* line */
+);
+
+/* Automatic reload when the desktop's resource settings change (default
+   on).  The user can also turn it off with the autoReloadResources resource. */
+extern void IswAppSetAutoReload(
+    IswAppContext	/* app_context */,
+    _IswBoolean		/* auto_reload */
 );
 
 extern void IswVaSetValues(
@@ -2400,6 +2418,23 @@ typedef struct {
     IswWidgetGeometry* reply;
     IswGeometryResult result;
 } IswGeometryHookDataRec, *IswGeometryHookData;
+
+/*
+ * Resources-changed callback on the display's hook object
+ * (IswAddCallback(IswHooksOfDisplay(dpy), IswNresourcesChangedCallback, ...)).
+ * Called after an automatic reload has re-applied resources and redrawn, so
+ * the application can refresh state that does not come from resources
+ * (custom-drawn colours, cached pixels).  call_data is IswResourcesChangedData.
+ */
+#define IswNresourcesChangedCallback "resourcesChangedCallback"
+
+#define IswResourcesChangedDatabase (1u << 0)  /* resource database rebuilt */
+#define IswResourcesChangedFonts    (1u << 1)  /* Xft.* font rendering settings */
+#define IswResourcesChangedCursors  (1u << 2)  /* Xcursor.* / Xft.dpi */
+
+typedef struct {
+    unsigned int changed;       /* IswResourcesChanged* flags */
+} IswResourcesChangedDataRec, *IswResourcesChangedData;
 
 typedef struct {
     String type;

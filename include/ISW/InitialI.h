@@ -203,6 +203,7 @@ typedef struct _IswAppStruct {
     int dpy_destroy_count;
     Boolean exit_flag;
     Boolean rebuild_fdlist;
+    Boolean auto_reload;		/* IswAppSetAutoReload, default True */
 #ifdef ISW_THREADS
     LockPtr lock_info;
     ThreadAppProc lock;
@@ -345,6 +346,11 @@ typedef struct _IswPerDisplayStruct {
     Widget hook_object;
     IswPerWidgetInput PerWidgetContext;
     double scale_factor;	       /* HiDPI scale factor (1.0 = 96 DPI) */
+    unsigned long cursor_generation;   /* bumped by ISWReloadCursors */
+    IswIntervalId reload_timer;	       /* settings-change debounce timer */
+    IswWorkProcId reload_work;	       /* pending idle auto reload */
+    String *put_lines;		       /* IswPutLineResource lines, in order */
+    Cardinal num_put_lines;
 } IswPerDisplayStruct, *IswPerDisplay;
 
 typedef struct _PerDisplayTable {
@@ -374,6 +380,14 @@ extern IswDisplay _IswConnectionOfScreen(IswScreen screen);
 
 extern IswPerDisplayInputRec* _IswGetPerDisplayInput(
     IswDisplay 		/* dpy */
+);
+
+/* Settings reload (ResourceReload.c, Initialize.c). */
+extern IswDatabaseHandle _IswDetachScreenDatabase(
+    IswScreen		/* screen */
+);
+extern void _IswScheduleSettingsReload(
+    IswDisplay		/* dpy */
 );
 
 #if 0
@@ -411,6 +425,22 @@ extern void _IswDisplayInitialize(
 extern void _IswCacheFlushTag(
     IswAppContext /* app */,
     IswPointer	 /* tag */
+);
+
+typedef void (*_IswCacheVisitProc)(
+    IswValuePtr	 /* from */,
+    IswValuePtr	 /* to */,
+    IswValuePtr	 /* args */,
+    Cardinal	 /* num_args */,
+    IswPointer	 /* closure */
+);
+
+extern void _IswCacheFlushConverter(
+    IswAppContext	/* app */,
+    IswPointer		/* tag */,
+    IswTypeConverter	/* converter */,
+    _IswCacheVisitProc	/* visit */,
+    IswPointer		/* closure */
 );
 
 extern void _IswFreeActions(

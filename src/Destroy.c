@@ -138,6 +138,7 @@ Phase2Destroy(register Widget widget)
     ObjectClassExtension ext;
 
     ISWRenderForgetRoot(widget);
+    _IswForgetAppSetResources(widget);
 
     /* Call constraint destroy procedures */
     if (IswParent(widget) != NULL && !IswIsShell(widget) &&

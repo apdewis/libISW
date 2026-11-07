@@ -52,6 +52,7 @@ SOFTWARE.
 #include <ISW/ISWP.h>
 #include <stdio.h>
 #include <ISW/IntrinsicP.h>
+#include <ISW/ShellP.h>
 #include <ISW/EventI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
@@ -257,6 +258,10 @@ _IswSimpleApplyCursor(Widget w)
         if (c != None && c != (IswCursor) 0xffffffff)
             cursor = c;
     }
+
+    /* A shell ancestor falls back to its themed default cursor. */
+    if (cursor == None && IswIsShell(anc))
+        cursor = ((ShellWidget) anc)->shell.theme_cursor;
 
     _IswSetWindowCursor(anc, cursor);
 }

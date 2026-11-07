@@ -97,7 +97,28 @@ extern void _IswResourceListInitialize(void);
 
 extern void _IswRefetchResources(
     Widget	    /* w */,
-    IswDatabaseHandle /* db */
+    IswDatabaseHandle /* old_db */,
+    IswDatabaseHandle /* new_db */
+);
+
+extern void _IswRefetchSubtree(
+    Widget	    /* w */,
+    IswDatabaseHandle /* old_db */,
+    IswDatabaseHandle /* new_db */
+);
+
+/* Resources set explicitly by the application (create args, IswSetValues);
+   a resource reload leaves them alone. */
+extern void _IswMarkAppSetArgs(
+    Widget	    /* w */,
+    ArgList	    /* args */,
+    Cardinal	    /* num_args */
+);
+extern void _IswForgetAppSetResources(
+    Widget	    /* w */
+);
+extern void _IswSuppressAppSetMarking(
+    Boolean	    /* suppress */
 );
 
 _XFUNCPROTOEND

@@ -840,10 +840,11 @@ FreeCursor(IswAppContext app,
 {
     IswDisplay display;
 
-    if (*num_args != 1) {
+    if (*num_args != 2) {
         IswAppWarningMsg(app,
                         IswNwrongParameters, "freeCursor", IswCIswToolkitError,
-                        "Free Cursor requires display argument", NULL, NULL);
+                        "Free Cursor requires display and screen arguments",
+                        NULL, NULL);
         return;
     }
 

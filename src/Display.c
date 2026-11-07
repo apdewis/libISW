@@ -244,6 +244,11 @@ InitPerDisplay(IswDisplay dpy,
     pd->ext_select_list = NULL;
     pd->ext_select_count = 0;
     pd->hook_object = NULL;
+    pd->cursor_generation = 0;
+    pd->reload_timer = 0;
+    pd->reload_work = 0;
+    pd->put_lines = NULL;
+    pd->num_put_lines = 0;
 #if 0
     /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
      * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
@@ -487,6 +492,7 @@ IswCreateApplicationContext(void)
     app->dpy_destroy_list = NULL;
     app->exit_flag = FALSE;
     app->rebuild_fdlist = TRUE;
+    app->auto_reload = TRUE;
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
     return app;
@@ -716,6 +722,18 @@ CloseDisplay(IswDisplay dpy)
          * cache flush) uses _IswConnectionOfScreen() which walks
          * app->list[] — the display must still be in that list. */
         _IswCacheFlushTag(xtpd->appContext, (IswPointer) &xtpd->heap);
+        /* Pending settings-change reload for this display. */
+        if (xtpd->reload_timer)
+            IswRemoveTimeOut(xtpd->reload_timer);
+        if (xtpd->reload_work)
+            IswRemoveWorkProc(xtpd->reload_work);
+        xtpd->reload_timer = 0;
+        xtpd->reload_work = 0;
+        for (i = 0; i < (int) xtpd->num_put_lines; i++)
+            IswFree(xtpd->put_lines[i]);
+        IswFree((char *) xtpd->put_lines);
+        xtpd->put_lines = NULL;
+        xtpd->num_put_lines = 0;
         IswDeleteFromAppContext(dpy, xtpd->appContext);
         IswFree((char *) xtpd->modKeysyms);
         IswFree((char *) xtpd->modsToKeysyms);

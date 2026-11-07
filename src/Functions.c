@@ -59,6 +59,7 @@ in this Software without prior written authorization from The Open Group.
 #include <ISW/ISWRender.h>
 #include <ISW/EventI.h>
 #include <ISW/ISWPlatform.h>
+#include <ISW/SimpleP.h>
 
 /*
  * This file defines functional equivalents to all macros defined
@@ -244,16 +245,39 @@ IswUnmapWidget(Widget w)
     }
 }
 
-static void
-ReloadSubtree(Widget w, IswDatabaseHandle db)
+/*
+ * _IswRefetchSubtree - re-apply the database-driven resources that changed
+ * between `old_db` and `new_db` on `w`, its children, windowless children and
+ * popups (see _IswRefetchResources).
+ */
+void
+_IswRefetchSubtree(Widget w, IswDatabaseHandle old_db, IswDatabaseHandle new_db)
 {
-    _IswRefetchResources(w, db);
+    Cardinal i;
+
+    if (w == NULL || w->core.being_destroyed)
+        return;
+
+    _IswRefetchResources(w, old_db, new_db);
 
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget) w;
-        Cardinal i;
         for (i = 0; i < cw->composite.num_children; i++)
-            ReloadSubtree(cw->composite.children[i], db);
+            _IswRefetchSubtree(cw->composite.children[i], old_db, new_db);
+    }
+    if (IswIsSubclass(w, simpleWidgetClass)) {
+        SimpleWidgetClass sc = (SimpleWidgetClass) w->core.widget_class;
+        if (sc->simple_class.nth_windowless_child != NULL) {
+            int k = 0;
+            Widget child;
+            while ((child = (*sc->simple_class.nth_windowless_child)(w, k++))
+                   != NULL)
+                _IswRefetchSubtree(child, old_db, new_db);
+        }
+    }
+    if (IswIsWidget(w)) {
+        for (i = 0; i < w->core.num_popups; i++)
+            _IswRefetchSubtree(w->core.popup_list[i], old_db, new_db);
     }
 }
 
@@ -280,16 +304,19 @@ RedisplaySubtree(Widget w)
 void
 IswReloadResources(Widget subtree_root)
 {
-    IswDatabaseHandle db;
+    IswDatabaseHandle old_db, db;
 
     if (subtree_root == NULL)
         return;
 
-    IswReloadScreenDatabase(IswScreenOfObject(subtree_root));
+    old_db = _IswDetachScreenDatabase(IswScreenOfObject(subtree_root));
     db = IswScreenDatabase(IswScreenOfObject(subtree_root));
+    if (db != NULL)
+        _IswRefetchSubtree(subtree_root, old_db, db);
+    if (old_db != NULL)
+        _IswPlatformResourceFree(old_db);
     if (db == NULL)
         return;
-    ReloadSubtree(subtree_root, db);
     RedisplaySubtree(subtree_root);
     if (IswIsRealized(subtree_root))
         _IswPlatformFlush(IswDisplayOf(subtree_root));

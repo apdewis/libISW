@@ -30,6 +30,11 @@ typedef struct _IswDisplayXCB {
     uint8_t             xi_opcode;
     uint8_t             xi_present;
     void               *scroll_valuators;
+
+    /* Desktop settings watch: property changes are selected on every root
+       window at open; a change to RESOURCE_MANAGER or this atom becomes an
+       IswSettingsChanged event. */
+    xcb_atom_t          screen_resources_atom;
 } IswDisplayXCB;
 
 /* window→widget table lifecycle (ISWPlatformWWTableXCB.c) */

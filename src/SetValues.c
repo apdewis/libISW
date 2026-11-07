@@ -237,6 +237,7 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
     SetValues((char *) w, (IswQResourceList *) wc->core_class.resources,
               wc->core_class.num_resources, args, num_args);
     UNLOCK_PROCESS;
+    _IswMarkAppSetArgs(w, args, num_args);
 
     (void) memcpy(reqw, w, (size_t) widgetSize);
 

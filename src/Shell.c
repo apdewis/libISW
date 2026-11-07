@@ -889,6 +889,7 @@ Initialize(Widget req _X_UNUSED,
 
     w->shell.popped_up = FALSE;
     w->shell.client_specified = _IswShellNotReparented | _IswShellPositionValid;
+    w->shell.theme_cursor = IswCursorNone;
 
     if (w->core.x == BIGSIZE) {
         w->core.x = 0;
@@ -1128,12 +1129,11 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
         /* Set a themed default cursor on the shell window so child
            widgets that don't set their own cursor inherit the theme's
            left_ptr instead of the X server's default glyph cursor. */
-        {
-            IswCursor cursor = _IswLoadThemedCursor(
-                IswDisplayOf(wid), wid->core.screen, "left_ptr");
-            if (cursor != IswCursorNone)
-                _IswSetWindowCursor(wid, cursor);
-        }
+        _IswFreeCursor(wid, w->shell.theme_cursor);
+        w->shell.theme_cursor = _IswLoadThemedCursor(
+            IswDisplayOf(wid), wid->core.screen, "left_ptr");
+        if (w->shell.theme_cursor != IswCursorNone)
+            _IswSetWindowCursor(wid, w->shell.theme_cursor);
     }
     _IswPlatformFlush(IswDisplayOf(wid));
 
@@ -1601,6 +1601,7 @@ Destroy(Widget wid)
 {
     if (IswIsRealized(wid))
         _IswPlatformDestroyWindow(IswDisplayOf(wid), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(wid)), (Widget)(wid)));
+    _IswFreeCursor(wid, ((ShellWidget) wid)->shell.theme_cursor);
 }
 
 static void

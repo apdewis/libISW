@@ -563,6 +563,25 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     }
     case XCB_PROPERTY_NOTIFY: {
         xcb_property_notify_event_t *e = (xcb_property_notify_event_t *) xev;
+        xcb_screen_iterator_t it;
+
+        /* Root window: no widget owns it.  A change to the desktop's resource
+           settings becomes IswSettingsChanged; every other root property
+           change (_NET_ACTIVE_WINDOW, ...) is consumed here. */
+        for (it = xcb_setup_roots_iterator(xcb_get_setup(_IswXcbConn(dpy)));
+             it.rem; xcb_screen_next(&it)) {
+            if (it.data->root != e->window)
+                continue;
+            if (e->atom == XCB_ATOM_RESOURCE_MANAGER ||
+                (e->atom != XCB_ATOM_NONE &&
+                 e->atom == ((IswDisplayXCB *) dpy)->screen_resources_atom)) {
+                out->kind = IswSettingsChanged;
+                out->any.time = e->time;
+                return True;
+            }
+            return False;
+        }
+
         out->kind = IswProtocol;
         out->any.target = target_for_window(dpy, e->window);
         out->any.native = __IswMalloc(32);

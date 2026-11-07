@@ -118,6 +118,7 @@ typedef struct {
 	IswCallbackList popup_callback;
 	IswCallbackList popdown_callback;
 	IswVisualId visual;
+	IswCursor   theme_cursor;	/* themed left_ptr set on the window */
 } ShellPart;
 
 typedef  struct {

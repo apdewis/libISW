@@ -427,6 +427,14 @@ IswScreenDatabase(IswScreen screen)
             _IswPlatformResourcePutLine(&db, *res);
     }
 
+    /* Lines the application added at runtime (IswPutLineResource), layered
+       on top so a rebuilt database keeps them. */
+    {
+        Cardinal i;
+        for (i = 0; i < pd->num_put_lines; i++)
+            _IswPlatformResourcePutLine(&db, pd->put_lines[i]);
+    }
+
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
     return db;
@@ -435,13 +443,29 @@ IswScreenDatabase(IswScreen screen)
 void
 IswReloadScreenDatabase(IswScreen screen_handle)
 {
+    IswDatabaseHandle old = _IswDetachScreenDatabase(screen_handle);
+
+    if (old)
+        _IswPlatformResourceFree(old);
+}
+
+/*
+ * _IswDetachScreenDatabase - drop the screen's cached database so the next
+ * IswScreenDatabase rebuilds it (command line, user defaults, fallbacks,
+ * IswPutLineResource lines), and hand the old one to the caller, who
+ * compares against it and frees it with _IswPlatformResourceFree.
+ */
+IswDatabaseHandle
+_IswDetachScreenDatabase(IswScreen screen_handle)
+{
     const IswPlatformOps *ops = _IswPlatformSelectBackend();
     IswDisplay dpy = NULL;
     int scrno = 0;
     IswPerDisplay pd;
+    IswDatabaseHandle old = NULL;
 
     if (screen_handle == NULL)
-        return;
+        return NULL;
 
     PerDisplayTablePtr pdt;
     LOCK_PROCESS;
@@ -462,17 +486,18 @@ IswReloadScreenDatabase(IswScreen screen_handle)
     UNLOCK_PROCESS;
     
     if (dpy == NULL)
-        return;
-    
+        return NULL;
+
     DPY_TO_APPCON(dpy);
     LOCK_APP(app);
     LOCK_PROCESS;
     if (pd->per_screen_db && pd->per_screen_db[scrno]) {
-        _IswPlatformResourceFree(pd->per_screen_db[scrno]);
+        old = pd->per_screen_db[scrno];
         pd->per_screen_db[scrno] = NULL;
     }
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
+    return old;
 }
 
 /*

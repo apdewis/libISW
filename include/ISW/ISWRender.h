@@ -942,11 +942,41 @@ int ISWScaledFontCapHeight(Widget widget, IswFontStruct *font);
  * settings, drops every font, glyph and measurement cache built under the old
  * settings, re-measures every widget that caches text metrics (see
  * IswFontMetricsExtension) and redraws all of the application's shells on
- * `dpy`.  Call it from the application's own context (e.g. a SIGHUP handler
- * deferred to the event loop, or a PropertyNotify on RESOURCE_MANAGER), not
- * from inside a widget's expose.
+ * `dpy`.  The automatic settings reload (on by default, see
+ * IswAppSetAutoReload) already does this when the Xft.* settings change;
+ * call it yourself only with that turned off, from the application's own
+ * context (e.g. a SIGHUP handler deferred to the event loop), not from
+ * inside a widget's expose.
  */
 void ISWRenderReloadFontOptions(IswDisplay dpy);
+
+/*
+ * ISWReloadCursors - Apply a changed desktop cursor theme or size live.
+ *
+ * Reloads, under the current cursor settings (Xcursor.theme / Xcursor.size
+ * in RESOURCE_MANAGER on X11), every cursor ISW loaded by name on `dpy`:
+ * each realized shell's default cursor, and every widget cursor resource set
+ * from a name (cursorName, or a String value for a Cursor resource).  Cursor
+ * resources the application set as a Cursor value are left alone.  Cursors
+ * ISW loads for its own use (drag-and-drop feedback, column resize) pick up
+ * the new settings the next time they are used.  The process environment is
+ * not consulted beyond what the platform itself reads.
+ *
+ * Independent of ISWRenderReloadFontOptions.  The automatic settings reload
+ * (on by default, see IswAppSetAutoReload) calls both when their settings
+ * change; call them yourself only with it turned off.  Call it from the
+ * application's own context, not from inside a widget's expose.
+ */
+void ISWReloadCursors(IswDisplay dpy);
+
+/*
+ * Reload stages used by the automatic settings reload (and by the explicit
+ * calls above): each does its part without redrawing, and
+ * _ISWRenderRedrawDisplay then redraws every shell on the display once.
+ */
+void _ISWRenderReloadFontStage(IswDisplay dpy);
+void _ISWReloadCursorStage(IswDisplay dpy);
+void _ISWRenderRedrawDisplay(IswDisplay dpy);
 
 /*
  * IswFontMetricsExtension - widget class extension for metric changes.

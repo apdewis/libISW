@@ -36,7 +36,8 @@ typedef struct {
     Dimension       col_resize_start_w;
 
     /* column resize cursors */
-    IswCursor    resize_cursor;     /* sb_h_double_arrow */
+    IswCursor    resize_cursor;     /* sb_h_double_arrow, loaded on use */
+    unsigned long resize_cursor_gen; /* display cursor generation it was loaded in */
     IswCursor    default_cursor;    /* widget's normal cursor */
     Boolean         resize_cursor_set; /* True when resize cursor is active */
 } ListViewHeaderPart;

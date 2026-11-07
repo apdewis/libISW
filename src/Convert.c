@@ -503,6 +503,50 @@ _IswCacheFlushTag(IswAppContext app, IswPointer tag)
     UNLOCK_PROCESS;
 }
 
+/*
+ * _IswCacheFlushConverter - free the cache entries made by one converter
+ * under one tag (a heap: &pd->heap for IswCacheByDisplay).  Each successful
+ * entry is shown to `visit` (from value, result, conversion args) before its
+ * destructor runs, so the caller can note what is about to be released.
+ */
+void
+_IswCacheFlushConverter(IswAppContext app,
+                        IswPointer tag,
+                        IswTypeConverter converter,
+                        _IswCacheVisitProc visit,
+                        IswPointer closure)
+{
+    int i;
+    register CachePtr rec;
+
+    LOCK_PROCESS;
+    for (i = CACHEHASHSIZE; --i >= 0;) {
+        register CachePtr *prev = &cacheHashTable[i];
+
+        while ((rec = *prev)) {
+            if (rec->tag != tag || rec->converter != converter) {
+                prev = &rec->next;
+                continue;
+            }
+            if (visit && rec->conversion_succeeded) {
+                IswValueRec from, to;
+
+                from.size = rec->from.size;
+                from.addr = rec->from_is_value ?
+                    (IswPointer) &rec->from.addr : rec->from.addr;
+                to.size = rec->to.size;
+                to.addr = rec->to_is_value ?
+                    (IswPointer) &rec->to.addr : rec->to.addr;
+                (*visit) (&from, &to,
+                          rec->num_args ? CARGS(rec) : NULL,
+                          rec->num_args, closure);
+            }
+            FreeCacheRec(app, rec, prev);
+        }
+    }
+    UNLOCK_PROCESS;
+}
+
 #ifdef DEBUG
 #include        <stdio.h>
 

@@ -1830,7 +1830,14 @@ IswDispatchEvent(IswEvent *event, IswDisplay dpy)
                 dispatch = _IswDefaultDispatcher;
         }
     }
-    was_dispatched = (*dispatch) (event, dpy);
+    /* Desktop settings changed: no widget target; schedule the coalesced
+       auto reload instead of dispatching. */
+    if (event->kind == IswSettingsChanged) {
+        _IswScheduleSettingsReload(dpy);
+        was_dispatched = True;
+    }
+    else
+        was_dispatched = (*dispatch) (event, dpy);
 
     /*
      * To make recursive IswDispatchEvent work, we need to do phase 2 destroys

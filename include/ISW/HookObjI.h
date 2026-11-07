@@ -43,6 +43,7 @@ typedef struct _HookObjPart {
     IswCallbackList confighook_callbacks;
     IswCallbackList geometryhook_callbacks;
     IswCallbackList destroyhook_callbacks;
+    IswCallbackList resources_changed_callbacks;
     WidgetList shells;
     Cardinal num_shells;
     /* private data */

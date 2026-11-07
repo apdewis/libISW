@@ -266,6 +266,8 @@ set(LIBXT_SOURCES
     src/VarGet.c
     src/Varargs.c
     src/ISWRender.c
+    src/ISWCursor.c
+    src/ResourceReload.c
     src/platform/X11/ISWRenderCairoXCB.c
     src/platform/X11/ISWFontSettingsX11.c
 )

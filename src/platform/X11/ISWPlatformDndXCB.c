@@ -365,6 +365,24 @@ CreateCursors(XdndState *st, xcb_connection_t *conn, xcb_screen_t *screen)
 #undef NELEM
 }
 
+/* Drag feedback cursors live for one drag: CreateCursors at drag start,
+   FreeCursors at cleanup, so each drag picks up the current cursor theme
+   and size. */
+static void
+FreeCursors(XdndState *st, xcb_connection_t *conn)
+{
+    xcb_cursor_t *cursors[] = {
+        &st->cursor_default, &st->cursor_copy, &st->cursor_move,
+        &st->cursor_link, &st->cursor_reject
+    };
+
+    for (int i = 0; i < (int)(sizeof(cursors) / sizeof(cursors[0])); i++) {
+        if (*cursors[i] != XCB_CURSOR_NONE)
+            xcb_free_cursor(conn, *cursors[i]);
+        *cursors[i] = XCB_CURSOR_NONE;
+    }
+}
+
 /* ------------------------------------------------------------------ */
 /* Widget tree walk to find drop target                               */
 /* ------------------------------------------------------------------ */
@@ -516,7 +534,6 @@ xcb_dnd_enable(Widget shell)
     st = (XdndState *) IswCalloc(1, sizeof(XdndState));
     st->core.shell = shell;
     InternAtoms(st, conn);
-    CreateCursors(st, conn, _IswXcbScreen(IswScreenOf(shell)));
 
     /* Store state on the shell window */
     IswSaveContext(IswDisplayOf(shell), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell))),
@@ -1138,6 +1155,7 @@ xcb_dnd_start_drag(Widget source_widget,
     st->drag_icon_cmap = XCB_NONE;
     st->drag_icon_visual = 0;
     st->core.finished_timer = 0;
+    CreateCursors(st, conn, _IswXcbScreen(IswScreenOf(st->core.shell)));
 
     /* Copy the type list as strings (caller's array may be transient) */
     if (desc->num_types > 0) {
@@ -1693,6 +1711,9 @@ DragCleanup(XdndState *st)
 
     /* Disown selection */
     IswDisownSelection(st->core.shell, st->XdndSelection, st->drag_timestamp);
+
+    /* Capture released above; the feedback cursors are no longer in use. */
+    FreeCursors(st, conn);
 
     /* Clean up icon */
     DestroyDragIcon(st);

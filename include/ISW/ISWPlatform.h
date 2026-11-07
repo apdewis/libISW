@@ -587,6 +587,10 @@ struct _IswPlatformCursorOps {
     void (*set_window_cursor)(IswDisplay dpy, IswWindow win, IswCursor cursor);
     /* Release a cursor (no-op for 0). */
     void (*free_cursor)(IswDisplay dpy, IswCursor cursor);
+    /* The desktop's cursor theme or size changed: drop any theme state the
+       backend keeps, so later load_named calls resolve under the new
+       settings.  Cursors already handed out stay valid. */
+    void (*settings_changed)(IswDisplay dpy);
 };
 
 /*
@@ -1044,6 +1048,7 @@ extern IswCursor _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
 extern void      _IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win,
                                              IswCursor cursor);
 extern void      _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor);
+extern void      _IswPlatformCursorSettingsChanged(IswDisplay dpy);
 
 /* Input capture */
 extern int  _IswPlatformCapturePointer(IswDisplay dpy, IswWindow grab_window,

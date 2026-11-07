@@ -208,6 +208,15 @@ xcb_cur_free_cursor(IswDisplay dpy, IswCursor cursor)
     xcb_free_cursor(conn, _IswXcbCursor(cursor));
 }
 
+/* Nothing to drop: xcb_cur_load_named opens a fresh xcb_cursor_context per
+   call, and each context reads Xcursor.theme / Xcursor.size / Xft.dpi from
+   RESOURCE_MANAGER when it is created. */
+static void
+xcb_cur_settings_changed(IswDisplay dpy)
+{
+    (void) dpy;
+}
+
 /* ---- grab ops ------------------------------------------------------------ */
 
 static int
@@ -531,6 +540,7 @@ const IswPlatformCursorOps isw_platform_xcb_cursor_ops = {
     .load_named        = xcb_cur_load_named,
     .set_window_cursor = xcb_cur_set_window_cursor,
     .free_cursor       = xcb_cur_free_cursor,
+    .settings_changed  = xcb_cur_settings_changed,
 };
 
 const IswPlatformGrabOps isw_platform_xcb_grab_ops = {

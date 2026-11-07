@@ -416,12 +416,12 @@ Widgets scale their own internal dimensions automatically. Use `ISWScaleDim` whe
 
 Text follows the system font rendering settings with no application code. The settings come from two places:
 
-- `Xft.antialias`, `Xft.hinting`, `Xft.hintstyle`, `Xft.rgba` and `Xft.lcdfilter` in the display's resource database (`RESOURCE_MANAGER`, read at display open).
+- `Xft.antialias`, `Xft.hinting`, `Xft.hintstyle`, `Xft.rgba` and `Xft.lcdfilter` in the display's resource database (`RESOURCE_MANAGER`).
 - fontconfig's per-font result (fonts.conf) for anything those resources don't set.
 
 A resource beats the fonts.conf value for the same property. Both backends (Cairo-XCB and EGL) honour them. Subpixel text is drawn only where the text lands on opaque pixels; over transparent or partially transparent areas it renders grayscale.
 
-To apply changed settings without a restart (e.g. on SIGHUP, or a `PropertyNotify` for `RESOURCE_MANAGER`), call this from the event loop, not from inside an expose:
+Changed settings apply live on their own (see [Live Settings Reload](#live-settings-reload)). With automatic reload turned off, apply them yourself (e.g. on SIGHUP) by calling this from the event loop, not from inside an expose:
 
 ```c
 #include <ISW/ISWRender.h>
@@ -455,6 +455,60 @@ static void ClassInitialize(void)
 ```
 
 Subclasses inherit the nearest superclass's record.
+
+## Cursor Theme and Size
+
+Cursors follow the desktop's cursor theme and size (`Xcursor.theme` / `Xcursor.size` in `RESOURCE_MANAGER`, else `Xft.dpi`). ISW does not set `XCURSOR_SIZE`; an application should not set it either, since it overrides the desktop setting for the process and every child it launches.
+
+A changed cursor theme or size applies live on its own (see [Live Settings Reload](#live-settings-reload)). With automatic reload turned off, call this from the event loop, alongside `ISWRenderReloadFontOptions` when both may have changed:
+
+```c
+#include <ISW/ISWRender.h>
+
+ISWReloadCursors(IswDisplayOf(toplevel));
+```
+
+It reloads:
+
+- each realized shell's default cursor;
+- every widget cursor resource set from a name — `cursorName`, or a String value for `cursor` (resource files, `IswVaTypedArg`) — applied through the widget's normal `set_values`.
+
+A `cursor` the application set as an `IswCursor` value is left alone; reload it yourself if it came from a theme. Drag-and-drop feedback cursors and the ListView column-resize cursor load again the next time they are used.
+
+## Live Settings Reload
+
+When the desktop changes its resource settings (`RESOURCE_MANAGER` or `SCREEN_RESOURCES` on X11, e.g. `xrdb -merge`), ISW reloads them automatically. Several writes in a row become one reload, which runs once the application is idle. The reload:
+
+- rebuilds the resource database, keeping command-line (`-xrm`) resources and lines added with `IswPutLineResource`;
+- reloads fonts if an `Xft.*` setting changed, and cursors if `Xcursor.theme`, `Xcursor.size` or `Xft.dpi` changed;
+- re-applies Pixel and Font resources whose database entry changed (the widget default if the entry was removed);
+- redraws every shell once;
+- calls the display's `resourcesChangedCallback`.
+
+A resource the application set explicitly (create args, `IswSetValues`, `IswVaTypedArg`) is never overwritten. Resources whose database entry did not change are not touched.
+
+A change to `Xft.dpi` does not change the HiDPI scale factor; that is fixed at display open.
+
+To refresh state that doesn't come from resources (custom-drawn colours, cached pixels), register the callback on the display's hook object:
+
+```c
+static void ResourcesChanged(Widget hook, IswPointer client, IswPointer call)
+{
+    IswResourcesChangedData d = (IswResourcesChangedData) call;
+    /* d->changed: IswResourcesChangedDatabase | IswResourcesChangedFonts | IswResourcesChangedCursors */
+}
+
+IswAddCallback(IswHooksOfDisplay(IswDisplayOf(toplevel)),
+               IswNresourcesChangedCallback, ResourcesChanged, NULL);
+```
+
+To add resources at runtime that survive a reload, use `IswPutLineResource` instead of editing the database:
+
+```c
+IswPutLineResource(IswDisplayOf(toplevel), "*Command.background: #3070c0");
+```
+
+Automatic reload is on by default. To turn it off, call `IswAppSetAutoReload(app, False)`. Users can also turn it off with the resource `<app>.autoReloadResources: false`, read each time a change arrives. With it off, the explicit calls still work: `ISWRenderReloadFontOptions`, `ISWReloadCursors` and `IswReloadResources(widget)`.
 
 ## Form Layout
 

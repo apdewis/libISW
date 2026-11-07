@@ -270,23 +270,8 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 	{to->size = sizeof(type); to->addr = (IswPointer)address;}
 
 static void
-_VendorFetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED,
-                       IswValueRec *value)
-{
-    static IswDisplay _fetch_dpy;
-    _fetch_dpy = IswDisplayOfObject(widget);
-    value->size = sizeof(IswDisplay);
-    value->addr = (IswPointer) &_fetch_dpy;
-}
-
-static void
 IswVendorShellClassInitialize(void)
 {
-    static IswConvertArgRec cursorConvertArgs[] = {
-        {IswProcedureArg, (IswPointer)_VendorFetchDisplayArg, 0},
-        {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.screen),
-	     sizeof(IswScreen)}
-    };
     static IswConvertArgRec _IswCvtStrToPix[] = {
 	{IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
 	     sizeof(IswScreen)},
@@ -297,10 +282,9 @@ IswVendorShellClassInitialize(void)
 	     sizeof(Pixel)}
     };
 
-    /* IswSetTypeConverter needs 7 args: from, to, converter, args, num_args, cache, destructor */
-    IswSetTypeConverter(IswRString, IswRCursor, IswCvtStringToCursor,
-     cursorConvertArgs, IswNumber(cursorConvertArgs),
-     IswCacheNone, NULL);
+    /* String to Cursor is the default converter registered in Converters.c
+       (cached per display, freed by FreeCursor); ISWReloadCursors relies on
+       that cache to find cursors that came from a name. */
 
     /* IswCvtCompoundTextToString commented out - complex text conversion not ported yet */
     /* IswSetTypeConverter("CompoundText", IswRString, IswCvtCompoundTextToString,
